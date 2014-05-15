@@ -15,7 +15,7 @@ white = 255, 255, 255
 pos = 0,0
 clock = pygame.time.Clock()
 
-N_RECTANGLES = 20
+N_RECTANGLES = 25
 FONT = pygame.font.Font(None, 20)
 TEXT = None
 TEXTPOS = 0, 0, 0, 0

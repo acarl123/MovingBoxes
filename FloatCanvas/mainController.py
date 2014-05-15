@@ -1,8 +1,6 @@
 from collections import deque
 from mainView import MainFrame
 import wx
-import numpy
-import numpy.random as RandomArray
 from wx.lib.floatcanvas import NavCanvas, FloatCanvas, Resources
 import pygame
 import itertools

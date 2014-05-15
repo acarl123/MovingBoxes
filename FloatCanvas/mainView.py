@@ -9,8 +9,6 @@
 
 import wx
 import wx.xrc
-import numpy as N
-import numpy.random as RandomArray
 from wx.lib.floatcanvas import NavCanvas, FloatCanvas, Resources
 
 ###########################################################################
