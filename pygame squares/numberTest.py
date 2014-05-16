@@ -11,7 +11,6 @@ black = 0, 0, 0
 
 start = time.time()
 
-counter = 0
 font = pygame.font.Font(None, 16)
 text = font.render("Hello There", 1, (10, 10, 10))
 textpos = text.get_rect()
