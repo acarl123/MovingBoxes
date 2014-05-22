@@ -18,7 +18,7 @@ frame.Centre(wx.BOTH)
 randnum = random
 randnum.seed()
 
-N_BIG_RECTS = 500
+N_BIG_RECTS = 2500
 N_SMALL_RECTS = 5*N_BIG_RECTS
 
 statbmp = wx.StaticBitmap(panel)
@@ -37,12 +37,12 @@ for i in range(N_BIG_RECTS):
    canvas_dc.SetFont(wx.SMALL_FONT)
    canvas_dc.DrawText('BigRectangle', x, y)
 
-for i in range(N_SMALL_RECTS):
-   x=10*randnum.randint(0,90)
-   y=10*randnum.randint(0,90)
-   rect = wx.Rect(x,y,35,35)
-   canvas_dc.DrawRoundedRectangleRect(rect, 8)
-   canvas_dc.DrawText('a', x, y)
+# for i in range(N_SMALL_RECTS):
+#    x=10*randnum.randint(0,90)
+#    y=10*randnum.randint(0,90)
+#    rect = wx.Rect(x,y,35,35)
+#    canvas_dc.DrawRoundedRectangleRect(rect, 8)
+#    canvas_dc.DrawText('a', x, y)
 
 canvas_dc.SelectObject(wx.NullBitmap)
 

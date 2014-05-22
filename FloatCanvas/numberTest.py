@@ -2,7 +2,7 @@ import wx, random, time
 from wx.lib.floatcanvas import NavCanvas
 
 app = wx.App(False)
-N_RECTANGLES = 500
+N_RECTANGLES = 2500
 blue = 100, 223, 237
 start = time.time()
 
