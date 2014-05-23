@@ -2,6 +2,7 @@ __author__ = 'mwj'
 
 import  wx
 import random
+import time
 
 #----------------------------------------------------------------------
 class DragShape:
@@ -41,7 +42,7 @@ class DragCanvas(wx.ScrolledWindow):
         self.dragShape = None
         self.hiliteShape = None
 
-        self.N_RECTS = 2500
+        self.N_RECTS = 4500
         randnum = random
         randnum.seed()
 
@@ -50,39 +51,46 @@ class DragCanvas(wx.ScrolledWindow):
         self.bg_bmp = wx.EmptyBitmap(1024,768)
         self.SetBackgroundStyle(wx.BG_STYLE_CUSTOM)
 
-        for i in range(self.N_RECTS):
-            # Make a shape from some text
-            text = "Hello There"
-            bg_colour = wx.Colour(57, 115, 57)  # matches the bg image
-            font = wx.Font(8, wx.ROMAN, wx.NORMAL, wx.BOLD)
-            textExtent = self.GetFullTextExtent(text, font)
+        startTime = time.time()
+        frameRate = 0
+        need_updated = True
+        while frameRate < 1:
+            frameRate+= 1
+            if need_updated:
+                need_updated = False
+                for i in range(self.N_RECTS):
+                     # Make a shape from some text
+                     text = "Hello There"
+                     bg_colour = wx.Colour(57, 115, 57)  # matches the bg image
+                     font = wx.Font(8, wx.ROMAN, wx.NORMAL, wx.BOLD)
+                     textExtent = self.GetFullTextExtent(text, font)
 
-            x=10*randnum.randint(0,90)
-            y=10*randnum.randint(0,90)
-            rect = wx.Rect(0,0,85,35)
+                     x=10*randnum.randint(0,90)
+                     y=10*randnum.randint(0,90)
+                     rect = wx.Rect(0,0,85,35)
 
-            # create a bitmap the same size as our text
-            bmp = wx.EmptyBitmap(textExtent[0], textExtent[1])
-            bmp = wx.EmptyBitmap(85, 35)
+                     # create a bitmap the same size as our text
+                     bmp = wx.EmptyBitmap(textExtent[0], textExtent[1])
+                     bmp = wx.EmptyBitmap(85, 35)
 
+                     # 'draw' the text onto the bitmap
+                     dc = wx.MemoryDC()
+                     dc.SelectObject(bmp)
+                     dc.SetBackground(wx.Brush(bg_colour, wx.SOLID))
+                     dc.Clear()
+                     dc.SetTextForeground(wx.RED)
+                     dc.SetFont(font)
 
-            # 'draw' the text onto the bitmap
-            dc = wx.MemoryDC()
-            dc.SelectObject(bmp)
-            dc.SetBackground(wx.Brush(bg_colour, wx.SOLID))
-            dc.Clear()
-            dc.SetTextForeground(wx.RED)
-            dc.SetFont(font)
+                     dc.DrawRoundedRectangleRect(rect, 8)
+                     dc.DrawText(text, 0, 0)
+                     dc.SelectObject(wx.NullBitmap)
+                     mask = wx.Mask(bmp, bg_colour)
+                     bmp.SetMask(mask)
+                     shape = DragShape(bmp)
+                     shape.pos = (x, y)
+                     self.shapes.append(shape)
 
-            dc.DrawRoundedRectangleRect(rect, 8)
-            dc.DrawText(text, 0, 0)
-            dc.SelectObject(wx.NullBitmap)
-            mask = wx.Mask(bmp, bg_colour)
-            bmp.SetMask(mask)
-            shape = DragShape(bmp)
-            shape.pos = (x, y)
-            self.shapes.append(shape)
-
+        print time.time()-startTime
 
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
@@ -249,6 +257,7 @@ def main():
    app = wx.App(False)
    frame = wx.Frame(None, id = wx.ID_ANY, title = wx.EmptyString, pos = wx.DefaultPosition, size = wx.Size( 1024,768 ), style = wx.DEFAULT_FRAME_STYLE|wx.TAB_TRAVERSAL )
    panel = wx.Panel(frame)
+
    canvas = DragCanvas(panel, -1)
 
    def onSize(evt, panel=panel, canvas=canvas):
