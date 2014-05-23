@@ -55,40 +55,38 @@ class DragCanvas(wx.ScrolledWindow):
         frameRate = 0
         need_updated = True
         while frameRate < 1:
-            frameRate+= 1
-            if need_updated:
-                need_updated = False
-                for i in range(self.N_RECTS):
-                     # Make a shape from some text
-                     text = "Hello There"
-                     bg_colour = wx.Colour(57, 115, 57)  # matches the bg image
-                     font = wx.Font(8, wx.ROMAN, wx.NORMAL, wx.BOLD)
-                     textExtent = self.GetFullTextExtent(text, font)
+             frameRate+= 1
+             for i in range(self.N_RECTS):
+                  # Make a shape from some text
+                  text = "Hello There"
+                  bg_colour = wx.Colour(57, 115, 57)  # matches the bg image
+                  font = wx.Font(8, wx.ROMAN, wx.NORMAL, wx.BOLD)
+                  textExtent = self.GetFullTextExtent(text, font)
 
-                     x=10*randnum.randint(0,90)
-                     y=10*randnum.randint(0,90)
-                     rect = wx.Rect(0,0,85,35)
+                  x=10*randnum.randint(0,90)
+                  y=10*randnum.randint(0,90)
+                  rect = wx.Rect(0,0,85,35)
 
-                     # create a bitmap the same size as our text
-                     bmp = wx.EmptyBitmap(textExtent[0], textExtent[1])
-                     bmp = wx.EmptyBitmap(85, 35)
+                  # create a bitmap the same size as our text
+                  bmp = wx.EmptyBitmap(textExtent[0], textExtent[1])
+                  bmp = wx.EmptyBitmap(85, 35)
 
-                     # 'draw' the text onto the bitmap
-                     dc = wx.MemoryDC()
-                     dc.SelectObject(bmp)
-                     dc.SetBackground(wx.Brush(bg_colour, wx.SOLID))
-                     dc.Clear()
-                     dc.SetTextForeground(wx.RED)
-                     dc.SetFont(font)
+                  # 'draw' the text onto the bitmap
+                  dc = wx.MemoryDC()
+                  dc.SelectObject(bmp)
+                  dc.SetBackground(wx.Brush(bg_colour, wx.SOLID))
+                  dc.Clear()
+                  dc.SetTextForeground(wx.RED)
+                  dc.SetFont(font)
 
-                     dc.DrawRoundedRectangleRect(rect, 8)
-                     dc.DrawText(text, 0, 0)
-                     dc.SelectObject(wx.NullBitmap)
-                     mask = wx.Mask(bmp, bg_colour)
-                     bmp.SetMask(mask)
-                     shape = DragShape(bmp)
-                     shape.pos = (x, y)
-                     self.shapes.append(shape)
+                  dc.DrawRoundedRectangleRect(rect, 8)
+                  dc.DrawText(text, 0, 0)
+                  dc.SelectObject(wx.NullBitmap)
+                  # mask = wx.Mask(bmp, bg_colour)
+                  # bmp.SetMask(mask)
+                  shape = DragShape(bmp)
+                  shape.pos = (x, y)
+                  self.shapes.append(shape)
 
         print time.time()-startTime
 

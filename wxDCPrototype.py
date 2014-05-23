@@ -62,8 +62,6 @@ while frameRate < 100:
 
 print time.time() - start_time, " seconds"
 
-
-
 app.MainLoop()
 
 
