@@ -23,18 +23,23 @@ frame.Centre(wx.BOTH)
 frame.Show()
 
 
-for x in xrange(N_FRAMES):
-   Canvas.Draw()
-   Canvas.UnBindAll()
-   Canvas.ClearAll()
+Canvas.Draw()
+Canvas.UnBindAll()
+Canvas.ClearAll()
 
-   for i in range(N_RECTANGLES):
-      x = random.randint(0, 900)
-      y = random.randint(0, 600)
-      rect = Canvas.AddRectangle(Canvas.PixelToWorld((x,y)), (80, 40), LineWidth=2, FillColor=blue)
-      Canvas.AddText('Hello There', Canvas.PixelToWorld((x+1, y-30)), 8)
-      rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, onRectHit)
+for i in xrange(N_RECTANGLES):
+   x = random.randint(0, 900)
+   y = random.randint(0, 600)
+   rect = Canvas.AddRectangle(Canvas.PixelToWorld((x,y)), (80, 40), LineWidth=2, FillColor=blue)
+   Canvas.AddText('Hello There', Canvas.PixelToWorld((x+1, y-30)), 8)
+   rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, onRectHit)
+
+for x in xrange(N_FRAMES):
+   Canvas._BackgroundDirty = True
+   Canvas.Draw()
 
 print time.time() - start
 
+
+app.MainLoop()
 

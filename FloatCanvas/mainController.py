@@ -3,6 +3,7 @@ from mainView import MainFrame
 import wx
 from wx.lib.floatcanvas import NavCanvas, FloatCanvas, Resources
 import pygame
+import random
 import itertools
 
 pygame.init()
@@ -50,9 +51,14 @@ def BB_HitTest(self, event, HitEvent):
 FloatCanvas.FloatCanvas.HitTest = BB_HitTest
 
 
+N_RECTANGLES = 1500
+randnum = random
+randnum.seed()
+
 class Main:
    def __init__(self, parent=None):
       self.mainWindow = MainFrame(None)
+      self.mainWindow.SetSize((1024, 768))
       wx.GetApp().Yield(True)
 
       self.canvas = self.mainWindow.Canvas
@@ -80,6 +86,10 @@ class Main:
       self.timer = wx.PyTimer(self.moveRects)
       self.frameDelay = 30
 
+      self.show()
+      for i in xrange(N_RECTANGLES):
+         self.onClick(None)
+
    def show(self, *args, **kwargs):
       self.mainWindow.Show()
 
@@ -99,27 +109,33 @@ class Main:
 
       self.selectedRects = []
 
-      if not event.Dragging():
-         xy = event.GetX(), event.GetY()
+      if not event or not event.Dragging():
+         if event:
+            xy = event.GetX(), event.GetY()
+         else:
+            xy = (randnum.randint(0, 800), randnum.randint(0, 600))
          rect = self.canvas.AddRectangle(self.canvas.PixelToWorld(xy), (80, 35), LineWidth=2, FillColor=BLUE)
          rect.Name = str(len(self.rects))
          rect.HitFill = False
          rect.HitLineWidth = 10
-         rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, evt=event: self.onRectHit(object, evt)) # You can bind to the hit event of rectangle objects
+         rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, evt=wx.MouseEvent(): self.onRectHit(object, evt)) # You can bind to the hit event of rectangle objects
          self.rects[rect.Name] = [rect, pygame.Rect(xy[0], xy[1]-35, 80, 35)]
-         self.canvas.Draw()
+         rect.PutInBackground()
+         if event:
+            self.canvas.Draw()
 
    def onUp(self, event):
       for rectObj in self.canvas._ForeDrawList: # Only the moving rects should be in the foreground
          rectObj.PutInBackground()
 
-      self.findCollidingRects()
-      if self.collidingRects:
-         self.timer.Start(self.frameDelay)
-      self.canvas.Draw()
+      # self.findCollidingRects()
+      # if self.collidingRects:
+      #    self.timer.Start(self.frameDelay)
+      # self.canvas.Draw()
 
    def onDrag(self, event):
       # Calculate change in mouse position since last event using a queue system
+      self.canvas._BackgroundDirty = False
       self.mousePositions.append((event.GetX(), event.GetY()))
       if len(self.mousePositions) == 2:
          self.mouserel = ((self.mousePositions[1][0] - self.mousePositions[0][0]),
@@ -135,12 +151,13 @@ class Main:
                # Also have to update the 'virtual' rect stored in the pygame object
                self.rects[rectNum][1][0] += self.mouserel[0]
                self.rects[rectNum][1][1] += -self.mouserel[1]
-            self.canvas.Draw(True)
+            self.canvas.Draw(False)
          else:
             pass
             # TODO: Add logic for drawing selection rectangle
 
    def onRectHit(self, object, event):
+
       if event.ControlDown():
          if object.Name not in self.selectedRects:
             self.selectedRects.append(object.Name)
@@ -154,6 +171,8 @@ class Main:
 
       object.PutInForeground() # clicked rect pops to top
       object.SetLineColor(WHITE)
+      self.canvas._BackgroundDirty = True
+      self.canvas.Draw()
 
    def moveRects(self, *args): # This is the autocorrection for overlap part
       try:
@@ -179,7 +198,7 @@ class Main:
                self.rects[rectNum][1][0] += lastrel[0]
                self.rects[rectNum][1][1] += lastrel[1]
 
-         self.canvas.Draw(True)
+         self.canvas.Draw()
          self.findCollidingRects()
       except wx._core.PyDeadObjectError:
          pass # TODO: warn user of unsafe closure
