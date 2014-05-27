@@ -42,18 +42,17 @@ class DragCanvas(wx.ScrolledWindow):
         self.dragShape = None
         self.hiliteShape = None
 
-        self.N_RECTS = 4500
+        self.N_RECTS = 10
         randnum = random
         randnum.seed()
-
 
         self.SetCursor(wx.StockCursor(wx.CURSOR_ARROW))
         self.bg_bmp = wx.EmptyBitmap(1024,768)
         self.SetBackgroundStyle(wx.BG_STYLE_CUSTOM)
 
+        self.SetDoubleBuffered(True)
         startTime = time.time()
         frameRate = 0
-        need_updated = True
         while frameRate < 1:
              frameRate+= 1
              for i in range(self.N_RECTS):
@@ -82,8 +81,8 @@ class DragCanvas(wx.ScrolledWindow):
                   dc.DrawRoundedRectangleRect(rect, 8)
                   dc.DrawText(text, 0, 0)
                   dc.SelectObject(wx.NullBitmap)
-                  # mask = wx.Mask(bmp, bg_colour)
-                  # bmp.SetMask(mask)
+                  mask = wx.Mask(bmp, bg_colour)
+                  bmp.SetMask(mask)
                   shape = DragShape(bmp)
                   shape.pos = (x, y)
                   self.shapes.append(shape)
@@ -109,7 +108,6 @@ class DragCanvas(wx.ScrolledWindow):
                 y = y + h
 
             x = x + w
-
 
     # Go through our list of shapes and draw them in whatever place they are.
     def DrawShapes(self, dc):
@@ -254,17 +252,16 @@ class DragCanvas(wx.ScrolledWindow):
 def main():
    app = wx.App(False)
    frame = wx.Frame(None, id = wx.ID_ANY, title = wx.EmptyString, pos = wx.DefaultPosition, size = wx.Size( 1024,768 ), style = wx.DEFAULT_FRAME_STYLE|wx.TAB_TRAVERSAL )
-   panel = wx.Panel(frame)
+   # panel = wx.Panel(frame)
 
-   canvas = DragCanvas(panel, -1)
+   canvas = DragCanvas(frame, -1)
 
-   def onSize(evt, panel=panel, canvas=canvas):
-      canvas.SetSize(panel.GetSize())
-
-   panel.Bind(wx.EVT_SIZE, onSize)
+   # def onSize(evt, panel=panel, canvas=canvas):
+   #    canvas.SetSize(panel.GetSize())
+   #
+   # panel.Bind(wx.EVT_SIZE, onSize)
    frame.Show()
    app.MainLoop()
-
 
 if __name__ == '__main__':
     main()
