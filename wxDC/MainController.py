@@ -53,7 +53,7 @@ class MainController:
       self.dragCanvas.SetCursor(wx.StockCursor(wx.CURSOR_ARROW))
       self.dragCanvas.bg_bmp = wx.EmptyBitmap(1024,768)
       # self.SetBackgroundStyle(wx.BG_STYLE_CUSTOM)
-
+      self.dragCanvas.SetScrollbars(1, 1, 2000, 2000, 0, 0)
       self.dragImage = None
       self.dragShape = None
       self.hiliteShape = None
@@ -103,6 +103,8 @@ class MainController:
       self.dragCanvas.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
       self.dragCanvas.Bind(wx.EVT_MOTION, self.OnMotion)
 
+      self.dragCanvas.Bind(wx.EVT_RIGHT_DOWN, self.OnRightDown)
+      self.dragCanvas.Bind(wx.EVT_RIGHT_UP, self.OnRightUp)
 
    def show(self):
       self.mainWindow.Show()
@@ -188,6 +190,11 @@ class MainController:
       self.dragCanvas.RefreshRect(self.dragShape.GetRect())
       self.dragShape = None
 
+   def OnRightDown(self, event):
+      self.dragCanvas.scroller.Start(event.GetPosition())
+
+   def OnRightUp(self, event):
+      self.dragCanvas.scroller.Stop()
 
    # The mouse is moving
    def OnMotion(self, evt):
