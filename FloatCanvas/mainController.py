@@ -171,8 +171,8 @@ class Main:
 
       object.PutInForeground() # clicked rect pops to top
       object.SetLineColor(WHITE)
-      self.canvas._BackgroundDirty = True
-      self.canvas.Draw()
+      # self.canvas._BackgroundDirty = True
+      # self.canvas.Draw()
 
    def moveRects(self, *args): # This is the autocorrection for overlap part
       try:
