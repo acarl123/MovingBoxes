@@ -9,6 +9,7 @@
 
 import wx
 import wx.xrc
+from NavigatorFloatCanvas import NavigatorFloatCanvas
 
 ###########################################################################
 ## Class NavigatorFrame
@@ -56,8 +57,8 @@ class NavigatorFrame ( wx.Frame ):
 		self.m_statusBar1 = self.CreateStatusBar( 1, wx.ST_SIZEGRIP, wx.ID_ANY )
 		bSizer1 = wx.BoxSizer( wx.VERTICAL )
 		
-		self.m_panel1 = wx.Panel( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.TAB_TRAVERSAL )
-		bSizer1.Add( self.m_panel1, 1, wx.EXPAND |wx.ALL, 5 )
+		self.NavCanvas = NavigatorFloatCanvas(self, Debug=0, BackgroundColor=(173, 173, 173))
+		bSizer1.Add( self.NavCanvas, 1, wx.ALL|wx.EXPAND, 5 )
 		
 		
 		self.SetSizer( bSizer1 )

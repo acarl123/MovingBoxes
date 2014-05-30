@@ -1,4 +1,5 @@
 from NavigatorView import NavigatorFrame
+import wx
 
 
 class NavigatorController:
@@ -7,3 +8,9 @@ class NavigatorController:
       self.mainWindow.Show()
 
       #Bindings
+      self.mainWindow.Bind(wx.EVT_MENU, self.onExit, self.mainWindow.menuExit)
+
+
+   def onExit(self, event):
+      self.mainWindow.Destroy()
+      exit()
