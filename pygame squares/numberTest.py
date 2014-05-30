@@ -5,8 +5,8 @@ size = width, height = 1024, 768
 screen = pygame.display.set_mode(size, pygame.DOUBLEBUF | pygame.RESIZABLE)
 random.seed()
 
-N_RECTANGLES = 100000
-N_FRAMES = 1
+N_RECTANGLES = 2500
+N_FRAMES = 100
 blue = 100, 223, 237
 black = 0, 0, 0
 need_screen_update = True

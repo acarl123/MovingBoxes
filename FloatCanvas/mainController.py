@@ -51,7 +51,7 @@ def BB_HitTest(self, event, HitEvent):
 FloatCanvas.FloatCanvas.HitTest = BB_HitTest
 
 
-N_RECTANGLES = 1500
+N_RECTANGLES = 10
 randnum = random
 randnum.seed()
 
@@ -128,14 +128,14 @@ class Main:
       for rectObj in self.canvas._ForeDrawList: # Only the moving rects should be in the foreground
          rectObj.PutInBackground()
 
-      # self.findCollidingRects()
-      # if self.collidingRects:
-      #    self.timer.Start(self.frameDelay)
-      # self.canvas.Draw()
+      self.findCollidingRects()
+      if self.collidingRects:
+         self.timer.Start(self.frameDelay)
+      self.canvas.Draw()
 
    def onDrag(self, event):
       # Calculate change in mouse position since last event using a queue system
-      self.canvas._BackgroundDirty = False
+      self.canvas._BackgroundDirty = True
       self.mousePositions.append((event.GetX(), event.GetY()))
       if len(self.mousePositions) == 2:
          self.mouserel = ((self.mousePositions[1][0] - self.mousePositions[0][0]),
@@ -157,7 +157,6 @@ class Main:
             # TODO: Add logic for drawing selection rectangle
 
    def onRectHit(self, object, event):
-
       if event.ControlDown():
          if object.Name not in self.selectedRects:
             self.selectedRects.append(object.Name)

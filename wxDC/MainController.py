@@ -40,7 +40,7 @@ class MainController:
       # Initialize all lists
       self.shapes = []
 
-      self.N_RECTS = 10
+      self.N_RECTS = 1000
 
       randnum = random
       randnum.seed()
