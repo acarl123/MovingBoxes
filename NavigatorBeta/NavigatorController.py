@@ -31,6 +31,7 @@ class NavigatorController:
    # Handles all mouse events
    def onMouse(self, event):
       # Calculate change in mouse position since last event using a queue system
+      print event.GetEventType()
       self.mousePositions.append((event.GetX(), event.GetY()))
       if len(self.mousePositions) == 2:
          self.mouseRel = ((self.mousePositions[1][0] - self.mousePositions[0][0]), (self.mousePositions[1][1] - self.mousePositions[0][1]))
