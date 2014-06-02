@@ -1,4 +1,5 @@
 from NavigatorView import NavigatorFrame
+import NavigatorModel
 import wx
 from collections import deque
 
@@ -7,6 +8,7 @@ class NavigatorController:
    def __init__(self):
       self.mainWindow = NavigatorFrame(None)
       self.mainWindow.Show()
+      self.rectModel = NavigatorModel.RectInfo
 
       # Bindings
       self.mainWindow.Bind(wx.EVT_MENU, self.onExit, self.mainWindow.menuExit)
@@ -16,7 +18,7 @@ class NavigatorController:
       self.mousePositions = deque([])
       self.mouseRel = 0, 0
 
-   """ Bindings """
+   # -------------------------------- Bindings --------------------------------------
    def onExit(self, event):
       self.mainWindow.Destroy()
       exit()
