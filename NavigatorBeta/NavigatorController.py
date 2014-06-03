@@ -24,8 +24,8 @@ class NavigatorController:
       # Bind normal events
       self.mainWindow.Bind(wx.EVT_MENU, self.onExit, self.mainWindow.menuExit)
       self.mainWindow.Bind(wx.EVT_MOUSEWHEEL, self.onScroll)
-      self.mainWindow.Bind(wx.EVT_KEY_DOWN, self.onCtrl, self.canvas)
-      self.mainWindow.Bind(wx.EVT_KEY_UP, self.offCtrl, self.canvas)
+      self.canvas.Bind(wx.EVT_KEY_DOWN, self.onUpdateCtrl)
+      self.canvas.Bind(wx.EVT_KEY_UP, self.onUpdateCtrl)
       self.canvas.Bind(wx.EVT_CONTEXT_MENU, self.onContextMenu)
 
       # Bind events to FloatCanvas
@@ -43,8 +43,7 @@ class NavigatorController:
       self.collidingRects = []
       self.timer = wx.PyTimer(self.moveRects)
       self.frameDelay = 30
-
-      self.i = 0
+      self.ctrl_down = False
 
       self.show()
 
@@ -57,14 +56,6 @@ class NavigatorController:
    def onExit(self, event):
       self.mainWindow.Destroy()
       exit()
-
-   # Handles all mouse events
-   # def onMouse(self, event):
-   #    # Calculate change in mouse position since last event using a queue system
-   #    self.mousePositions.append((event.GetX(), event.GetY()))
-   #    if len(self.mousePositions) == 2:
-   #       self.mouseRel = ((self.mousePositions[1][0] - self.mousePositions[0][0]), (self.mousePositions[1][1] - self.mousePositions[0][1]))
-   #       self.mousePositions.popleft()
 
    def onClick(self, event):
       # Set a black border rectangle on each shape
@@ -118,12 +109,11 @@ class NavigatorController:
       elif scrollFactor > 0:
          print 'scrolling in'
          scrollFactor = 2
-
       self.canvas.Zoom(scrollFactor, event.GetPositionTuple(), 'pixel')
 
    def onRectLeftClick(self, object, event):
       print 'On Rect Left Click'
-      if event.ControlDown():
+      if self.ctrl_down:
          if object.Name not in self.selectedRects:
             self.selectedRects.append(object.Name)
       else:
@@ -174,11 +164,13 @@ class NavigatorController:
    def onLock(self, event):
       print 'Lock'
 
-   def onCtrl(self, event):
+   def onUpdateCtrl(self, event):
+      self.ctrl_down = event.ControlDown()
+      event.Skip()
       pass
 
-   def offCtrl(self, event):
-      pass
+   # def offCtrl(self, event):
+   #    pass
 
    #--------------------------------------------------------------------------------------#
    # Initialize Methods
