@@ -69,9 +69,9 @@ class NavigatorController:
 
    def onLUp(self, event):
       print 'On Left Up'
-      for rectObj in self.canvas._ForeDrawList: # Only the moving rects should be in the foreground
-         rectObj.PutInBackground()
-         rectObj.Text.PutInBackground()
+      for rectObj in self.selectedRects: # Only the moving rects should be in the foreground
+         self.rects[rectObj][0].PutInBackground()
+         self.rects[rectObj][0].Text.PutInBackground()
 
       self.findCollidingRects()
       if self.collidingRects:
