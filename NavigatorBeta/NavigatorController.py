@@ -22,9 +22,12 @@ class NavigatorController:
 
       # Bind normal events
       self.mainWindow.Bind(wx.EVT_MENU, self.onExit, self.mainWindow.menuExit)
+      self.mainWindow.Bind(wx.EVT_MOUSEWHEEL, self.onScroll)
 
       # Bind events to FloatCanvas
-      self.canvas.Bind(wx.EVT_MOUSE_EVENTS, self.onMouse) # Add all mouse events to a single bind
+      self.canvas.Bind(FloatCanvas.EVT_LEFT_DOWN, self.onClick)
+      self.canvas.Bind(FloatCanvas.EVT_LEFT_UP, self.onLUp)
+      self.canvas.Bind(FloatCanvas.EVT_RIGHT_DOWN, self.onRClick)
 
       # Initialize member variables
       self.rects = {}
@@ -47,18 +50,18 @@ class NavigatorController:
       exit()
 
    # Handles all mouse events
-   def onMouse(self, event):
-      # Calculate change in mouse position since last event using a queue system
-      self.mousePositions.append((event.GetX(), event.GetY()))
-      if len(self.mousePositions) == 2:
-         self.mouseRel = ((self.mousePositions[1][0] - self.mousePositions[0][0]), (self.mousePositions[1][1] - self.mousePositions[0][1]))
-         self.mousePositions.popleft()
-
-      if event.GetEventType() == FloatCanvas.EVT_LEFT_DOWN: self.onClick(event)
-      if event.GetEventType() == FloatCanvas.EVT_RIGHT_DOWN: self.onRClick(event)
-      if event.GetEventType() == FloatCanvas.EVT_LEFT_UP: self.onLUp(event)
-      if event.GetEventType() == wx.wxEVT_MOUSEWHEEL: self.onScroll(event)
-      if event.Dragging() == True: self.onDrag(event)
+   # def onMouse(self, event):
+   #    # Calculate change in mouse position since last event using a queue system
+   #    self.mousePositions.append((event.GetX(), event.GetY()))
+   #    if len(self.mousePositions) == 2:
+   #       self.mouseRel = ((self.mousePositions[1][0] - self.mousePositions[0][0]), (self.mousePositions[1][1] - self.mousePositions[0][1]))
+   #       self.mousePositions.popleft()
+   #
+   #    if event.GetEventType() == FloatCanvas.EVT_LEFT_DOWN: self.onClick(event)
+   #    if event.GetEventType() == FloatCanvas.EVT_RIGHT_DOWN: self.onRClick(event)
+   #    if event.GetEventType() == FloatCanvas.EVT_LEFT_UP: self.onLUp(event)
+   #    if event.GetEventType() == wx.wxEVT_MOUSEWHEEL: self.onScroll(event)
+   #    if event.Dragging() == True: self.onDrag(event)
 
    def onClick(self, event):
       # Set a black border rectangle on each shape

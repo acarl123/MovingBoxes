@@ -112,6 +112,7 @@ class Main:
       if not event or not event.Dragging():
          if event:
             xy = event.GetX(), event.GetY()
+            print xy
          else:
             xy = (randnum.randint(0, 800), randnum.randint(0, 600))
          rect = self.canvas.AddRectangle(self.canvas.PixelToWorld(xy), (80, 35), LineWidth=2, FillColor=BLUE)
