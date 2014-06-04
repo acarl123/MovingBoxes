@@ -24,14 +24,15 @@ class NavigatorController:
       # Bind normal events
       self.mainWindow.Bind(wx.EVT_MENU, self.onExit, self.mainWindow.menuExit)
       self.mainWindow.Bind(wx.EVT_MOUSEWHEEL, self.onScroll)
-      self.canvas.Bind(wx.EVT_KEY_DOWN, self.onUpdateCtrl)
-      self.canvas.Bind(wx.EVT_KEY_UP, self.onUpdateCtrl)
+      self.canvas.Bind(wx.EVT_KEY_DOWN, self.onKeyEvents)
+      self.canvas.Bind(wx.EVT_KEY_UP, self.onKeyEvents)
+      # self.canvas.Bind(wx.EVT_KEY_DOWN, self.onUpdateCtrl)
+      # self.canvas.Bind(wx.EVT_KEY_UP, self.onUpdateCtrl)
       self.canvas.Bind(wx.EVT_CONTEXT_MENU, self.onContextMenu)
 
       # Bind events to FloatCanvas
       self.canvas.Bind(FloatCanvas.EVT_LEFT_DOWN, self.onClick)
       self.canvas.Bind(FloatCanvas.EVT_LEFT_UP, self.onLUp)
-      # self.canvas.Bind(FloatCanvas.EVT_RIGHT_DOWN, self.onRClick)
       self.canvas.Bind(FloatCanvas.EVT_MOTION, self.onDrag)
 
       # Initialize member variables
@@ -155,8 +156,28 @@ class NavigatorController:
    def onArrangeHorizontally(self, event):
       print 'Arrange Horizontally'
 
+
    def onArrangeVertically(self, event):
       print 'Arrange Vertically'
+      # Get the position of the first rectangle
+      firstKey = self.selectedRects[0]
+      xpos1 = self.rects[firstKey][1][0]
+      ypos1 = self.rects[firstKey][1][1]
+      # Loop through the rectangles and align left with this rectangle
+      for rectNum in self.selectedRects:
+         xpos2 = self.rects[rectNum][1][0]
+         ypos2 = self.rects[rectNum][1][0]
+
+         differencex = xpos1-xpos2
+         differencey = ypos1-ypos2
+
+         print differencey
+
+         self.rects[rectNum][0].Move((differencex, 0))
+         self.rects[rectNum][0].Text.Move((differencex, 0))
+         self.rects[rectNum][1][0] += differencex
+         self.rects[rectNum][1][1] += 0
+      self.canvas.Draw()
 
    def onDelete(self, event):
       print 'Delete'
@@ -164,13 +185,21 @@ class NavigatorController:
    def onLock(self, event):
       print 'Lock'
 
-   def onUpdateCtrl(self, event):
-      self.ctrl_down = event.ControlDown()
-      event.Skip()
-      pass
-
-   # def offCtrl(self, event):
+   # def onUpdateCtrl(self, event):
+   #    self.ctrl_down = event.ControlDown()
+   #    event.Skip()
    #    pass
+
+   def onKeyEvents(self, event):
+      self.ctrl_down = event.ControlDown()
+      if event.GetKeyCode() == wx.WXK_DELETE:
+         for rectNum in self.selectedRects:
+            print self.rects[rectNum][0]
+            self.canvas.RemoveObjects((self.rects[rectNum][0], self.rects[rectNum][0].Text))
+            del self.rects[rectNum]
+         self.selectedRects=[]
+      self.canvas.Draw()
+
 
    #--------------------------------------------------------------------------------------#
    # Initialize Methods
@@ -182,12 +211,12 @@ class NavigatorController:
       # self.canvas.AddRectangle(self.canvas.PixelToWorld((20, 20)), (80, 35), lineWidth=2, FILLColor=wx.Colour('BLUE'))
       randnum = random
       randnum.seed()
-      for i in xrange(10):
-         xy = (randnum.randint(0, 800), randnum.randint(0, 600))
-         rect = self.canvas.AddRectangle(self.canvas.PixelToWorld(xy), (80, 35), LineWidth=2, FillColor=NavigatorModel.colors['BLUE'])
+      for i in xrange(3):
+         xy = (randnum.randint(0, 100), randnum.randint(0, 200))
+         rect = self.canvas.AddRectangle(xy, (80, 35), LineWidth=0, FillColor=NavigatorModel.colors['BLUE'])
          rect.Name = str(len(self.rects))
          rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
-         rect.Text = self.canvas.AddScaledText('Hello There', self.canvas.PixelToWorld((xy[0]+40, xy[1]-17.5)), 7, Position = "cc")
+         rect.Text = self.canvas.AddScaledText('Number ' + `i`, (xy[0]+40, xy[1]+17.5), 7, Position = "cc")
          self.rects[rect.Name] = [rect, pygame.Rect(xy[0], xy[1]-35, 80, 35)]
          rect.PutInBackground()
          rect.Text.PutInBackground()
