@@ -2,7 +2,6 @@ from collections import deque
 from NavigatorView import NavigatorFrame
 from wx.lib.floatcanvas import NavCanvas, FloatCanvas, Resources
 import NavigatorModel
-import pygame
 import random
 import wx
 FloatCanvas.FloatCanvas.HitTest = NavigatorModel.BB_HitTest
@@ -41,6 +40,13 @@ class NavigatorController:
       self.mouseRel = 0, 0
       self.ctrl_down = False
 
+
+      self.Selecting = False
+      self.Tol = -1
+      self.StartPointWorld = None
+      self.bandRect = None
+
+
       # @TODO: Remove this in the future, but for now populate the screen for prototyping
       self.populateScreen()
 
@@ -52,12 +58,11 @@ class NavigatorController:
       randnum.seed()
       for i in xrange(10):
          xy = (randnum.randint(0, 800), randnum.randint(0, 600))
-         # xy = 0, 0
          rect = self.canvas.AddRectangle(self.canvas.PixelToWorld(xy), (80, 35), LineWidth=0, FillColor=NavigatorModel.colors['BLUE'])
          rect.Name = str(len(self.rects))
          rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
          rect.Text = self.canvas.AddScaledText('Number ' + `i`, self.canvas.PixelToWorld((xy[0]+40, xy[1]-17.5)), 7, Position = "cc")
-         self.rects[rect.Name] = [rect, pygame.Rect(xy[0], xy[1]-35, 80, 35)]
+         self.rects[rect.Name] = [rect]
          rect.PutInBackground()
          rect.Text.PutInBackground()
       self.canvas.Draw()
@@ -81,24 +86,43 @@ class NavigatorController:
       self.canvas.Zoom(scrollFactor, event.GetPositionTuple(), 'pixel')
 
    def onContextMenu(self, event):
-      if not hasattr(self, "popupID1"):
-         self.popupID1 = wx.NewId()
-         self.popupID2 = wx.NewId()
-         self.popupID3 = wx.NewId()
-         self.popupID4 = wx.NewId()
-
-         self.canvas.Bind(wx.EVT_MENU, self.onArrangeHorizontally, id=self.popupID1)
-         self.canvas.Bind(wx.EVT_MENU, self.onArrangeVertically, id=self.popupID2)
-         self.canvas.Bind(wx.EVT_MENU, self.onDelete, id=self.popupID3)
-         self.canvas.Bind(wx.EVT_MENU, self.onLock, id=self.popupID4)
-
-      menu = wx.Menu()
-      menu.Append(self.popupID1, 'Arrange Horizontally')
-      menu.Append(self.popupID2, 'Arrange Vertically')
-      menu.Append(self.popupID3, 'Delete Selected')
-      menu.Append(self.popupID4, 'Lock')
-      self.canvas.PopupMenu(menu)
-      menu.Destroy()
+      if len(self.selectedRects) == 0:
+         return
+      elif len(self.selectedRects) == 1:
+         if not hasattr(self, 'popupID1'):
+            self.popupID1 = wx.NewId()
+            self.popupID2 = wx.NewId()
+            self.popupID3 = wx.NewId()
+            self.popupID4 = wx.NewId()
+            self.canvas.Bind(wx.EVT_MENU, self.onExpand, id=self.popupID1)
+            self.canvas.Bind(wx.EVT_MENU, self.onAttributes, id=self.popupID2)
+            self.canvas.Bind(wx.EVT_MENU, self.onDelete, id=self.popupID3)
+            self.canvas.Bind(wx.EVT_MENU, self.onLock, id=self.popupID4)
+         menu = wx.Menu()
+         menu.Append(self.popupID1, 'Expand')
+         menu.Append(self.popupID2, 'Attributes/Properties')
+         menu.Append(self.popupID3, 'Delete Selected')
+         menu.Append(self.popupID4, 'Lock')
+         self.canvas.PopupMenu(menu)
+         menu.Destroy()
+         return
+      elif len(self.selectedRects) > 1:
+         if not hasattr(self, 'popupID1'):
+            self.popupID1 = wx.NewId()
+            self.popupID2 = wx.NewId()
+            self.popupID3 = wx.NewId()
+            self.popupID4 = wx.NewId()
+            self.canvas.Bind(wx.EVT_MENU, self.onArrangeHorizontally, id=self.popupID1)
+            self.canvas.Bind(wx.EVT_MENU, self.onArrangeVertically, id=self.popupID2)
+            self.canvas.Bind(wx.EVT_MENU, self.onDelete, id=self.popupID3)
+            self.canvas.Bind(wx.EVT_MENU, self.onLock, id=self.popupID4)
+         menu = wx.Menu()
+         menu.Append(self.popupID1, 'Arrange Horizontally')
+         menu.Append(self.popupID2, 'Arrange Vertically')
+         menu.Append(self.popupID3, 'Delete Selected')
+         menu.Append(self.popupID4, 'Lock')
+         self.canvas.PopupMenu(menu)
+         menu.Destroy()
 
    def onKeyEvents(self, event):
       self.ctrl_down = event.ControlDown()
@@ -113,9 +137,31 @@ class NavigatorController:
          self.rects[rectNum][0].SetLineColor(wx.Colour(0, 0, 0))
       self.selectedRects = []
 
+      # Updating the ability to do a band box
+      self.Selecting = True
+      self.StartPoint = event.GetPosition()
+      self.StartPointWorld = event.Coords
+
    def onDrag(self, event):
+      if self.Selecting:
+         xy = self.StartPoint
+         cornerx, cornery = event.GetPosition()
+         w, h = (cornerx-xy[0], cornery-xy[1])
+         if abs(w) > self.Tol and abs(h) > self.Tol:
+            # Draw the band box
+            dc = wx.ClientDC(self.canvas)
+            dc.SetPen(wx.Pen('WHITE', 2, wx.SHORT_DASH))
+            dc.SetBrush(wx.TRANSPARENT_BRUSH)
+            dc.SetLogicalFunction(wx.XOR)
+            if self.bandRect:
+               dc.DrawRectangle(*self.bandRect)
+            self.bandRect = (xy[0], xy[1], w, h)
+            dc.DrawRectangle(*self.bandRect)
+      event.Skip()
+
       self.canvas._BackgroundDirty = True
-      self.mousePositions.append((event.GetX(), event.GetY()))
+      self.mousePositions.append(event.GetPositionTuple())
+
       if len(self.mousePositions) == 2:
          self.mouseRel = ((self.mousePositions[1][0] - self.mousePositions[0][0]),
                           -(self.mousePositions[1][1] - self.mousePositions[0][1]))
@@ -129,9 +175,6 @@ class NavigatorController:
                   self.rects[rectNum][0].Text.PutInForeground()
                self.rects[rectNum][0].Move(self.mouseRel)
                self.rects[rectNum][0].Text.Move(self.mouseRel)
-               # Also have to update the 'virtual' rect stored in the pygame object
-               self.rects[rectNum][1][0] += self.mouseRel[0]
-               self.rects[rectNum][1][1] += -self.mouseRel[1]
             self.canvas.Draw(False)
          else:
             pass
@@ -143,32 +186,52 @@ class NavigatorController:
          self.rects[rectObj][0].Text.PutInBackground()
       self.canvas.Draw()
 
+      if self.Selecting:
+         self.Selecting = False
+      self.StartPointWorld = None
+
    #--------------------------------------------------------------------------------------#
-   # ContextMenu Bindings
+   # ContextMenu with Single Object Selected Bindings
+   #--------------------------------------------------------------------------------------#
+   def onExpand(self, event):
+      print 'Expand'
+
+   def onAttributes(self, event):
+      print 'Show Attributes'
+
+   #--------------------------------------------------------------------------------------#
+   # ContextMenu with Multiple Objects Selected Bindings
    #--------------------------------------------------------------------------------------#
    def onArrangeHorizontally(self, event):
-      print 'Arrange Horizontally'
+      if self.selectedRects:
+         firstRect = self.selectedRects[0]
+         xpos1 = self.rects[firstRect][0].BoundingBox.Left
+         ypos1 = self.rects[firstRect][0].BoundingBox.Top
+         index = 0
+         for rectNum in self.selectedRects:
+            xpos2 = self.rects[rectNum][0].BoundingBox.Left
+            ypos2 = self.rects[rectNum][0].BoundingBox.Top
+            differencex = xpos1-xpos2+index
+            differencey = ypos1-ypos2
+            self.rects[rectNum][0].Move((differencex, differencey))
+            self.rects[rectNum][0].Text.Move((differencex, differencey))
+            index += self.rects[rectNum][0].BoundingBox.Width + 5
+         self.canvas.Draw()
 
    def onArrangeVertically(self, event):
       if self.selectedRects:
-         # Get the position of the first rectangle
-         firstKey = self.selectedRects[0]
-         xpos1 = self.rects[firstKey][1][0]
-         ypos1 = self.rects[firstKey][1][1]
-         # Loop through the rectangles and align left with this rectangle
+         firstRect = self.selectedRects[0]
+         xpos1 = self.rects[firstRect][0].BoundingBox.Left
+         ypos1 = self.rects[firstRect][0].BoundingBox.Top
          index = 0
          for rectNum in self.selectedRects:
-            xpos2 = self.rects[rectNum][1][0]
-            ypos2 = self.rects[rectNum][1][1]
-
+            xpos2 = self.rects[rectNum][0].BoundingBox.Left
+            ypos2 = self.rects[rectNum][0].BoundingBox.Top
             differencex = xpos1-xpos2
             differencey = ypos1-ypos2+index
-
-            self.rects[rectNum][0].Move((differencex, -differencey))
-            self.rects[rectNum][0].Text.Move((differencex, -differencey))
-            self.rects[rectNum][1][0] += differencex
-            self.rects[rectNum][1][1] += differencey
-            index += self.rects[rectNum][1][3] + 10
+            self.rects[rectNum][0].Move((differencex, differencey))
+            self.rects[rectNum][0].Text.Move((differencex, differencey))
+            index -= self.rects[rectNum][0].BoundingBox.Height + 10
          self.canvas.Draw()
 
    def onDelete(self, event):
