@@ -1,6 +1,7 @@
 from collections import deque
 from NavigatorView import NavigatorFrame
 from wx.lib.floatcanvas import NavCanvas, FloatCanvas, Resources
+from wx.lib.floatcanvas.Utilities import GUI
 import NavigatorModel
 import random
 import wx
@@ -27,11 +28,6 @@ class NavigatorController:
       self.canvas.Bind(wx.EVT_KEY_DOWN, self.onKeyEvents)
       self.canvas.Bind(wx.EVT_KEY_UP, self.onKeyEvents)
 
-      # Bind events to FloatCanvas
-      self.canvas.Bind(FloatCanvas.EVT_LEFT_DOWN, self.onClick)
-      self.canvas.Bind(FloatCanvas.EVT_MOTION, self.onDrag)
-      self.canvas.Bind(FloatCanvas.EVT_LEFT_UP, self.onLUp)
-
       # Initialize member variables
       self.rects = {}
       self.selectedRects = []
@@ -40,23 +36,22 @@ class NavigatorController:
       self.mouseRel = 0, 0
       self.ctrl_down = False
 
-
-      self.Selecting = False
-      self.Tol = -1
+      self.Drawing = False
+      self.RBRect = None
       self.StartPointWorld = None
-      self.bandRect = None
-
+      self.Tol = 5
+      self.enable()
 
       # @TODO: Remove this in the future, but for now populate the screen for prototyping
       self.populateScreen()
 
    #--------------------------------------------------------------------------------------#
-   # Initialization
+   # Initialization (not bindings)
    #--------------------------------------------------------------------------------------#
    def populateScreen(self):
       randnum = random
       randnum.seed()
-      for i in xrange(10):
+      for i in xrange(50):
          xy = (randnum.randint(0, 800), randnum.randint(0, 600))
          rect = self.canvas.AddRectangle(self.canvas.PixelToWorld(xy), (80, 35), LineWidth=0, FillColor=NavigatorModel.colors['BLUE'])
          rect.Name = str(len(self.rects))
@@ -69,6 +64,18 @@ class NavigatorController:
 
    def show(self):
       self.mainWindow.Show()
+
+   def enable(self):
+      # Bind events to FloatCanvas
+      self.canvas.Bind(FloatCanvas.EVT_LEFT_DOWN, self.onClick)
+      self.canvas.Bind(FloatCanvas.EVT_MOTION, self.onDrag)
+      self.canvas.Bind(FloatCanvas.EVT_LEFT_UP, self.onLUp)
+
+   def disable(self):
+      # Bind events to FloatCanvas
+      self.canvas.Unbind(FloatCanvas.EVT_LEFT_DOWN, self.onClick)
+      self.canvas.Unbind(FloatCanvas.EVT_MOTION, self.onDrag)
+      self.canvas.Unbind(FloatCanvas.EVT_LEFT_UP, self.onLUp)
 
    #--------------------------------------------------------------------------------------#
    # Normal Bindings
@@ -133,41 +140,44 @@ class NavigatorController:
    # FloatCanvas Bindings
    #--------------------------------------------------------------------------------------#
    def onClick(self, event):
-      for rectNum in self.rects:
-         self.rects[rectNum][0].SetLineColor(wx.Colour(0, 0, 0))
-      self.selectedRects = []
-
-      # Updating the ability to do a band box
-      self.Selecting = True
+      # Start drawing band box
+      self.Drawing = True
       self.StartPoint = event.GetPosition()
       self.StartPointWorld = event.Coords
 
+      if not self.ctrl_down:
+         for rectNum in self.rects:
+            self.rects[rectNum][0].SetLineColor(wx.Colour(0, 0, 0))
+         self.selectedRects = []
+
+   # @TODO: fix the logic of where the band box stuff should go and clean up the code a bit
    def onDrag(self, event):
-      if self.Selecting:
-         xy = self.StartPoint
+      # Draw the band box
+      if self.Drawing:
+         x, y = self.StartPoint
          cornerx, cornery = event.GetPosition()
-         w, h = (cornerx-xy[0], cornery-xy[1])
+         w, h = (cornerx - x, cornery - y)
          if abs(w) > self.Tol and abs(h) > self.Tol:
-            # Draw the band box
+            # draw the RB box
             dc = wx.ClientDC(self.canvas)
             dc.SetPen(wx.Pen('WHITE', 2, wx.SHORT_DASH))
             dc.SetBrush(wx.TRANSPARENT_BRUSH)
             dc.SetLogicalFunction(wx.XOR)
-            if self.bandRect:
-               dc.DrawRectangle(*self.bandRect)
-            self.bandRect = (xy[0], xy[1], w, h)
-            dc.DrawRectangle(*self.bandRect)
+            if self.RBRect:
+               dc.DrawRectangle(*self.RBRect)
+            self.RBRect = (x, y, w, h)
+            dc.DrawRectangle(*self.RBRect)
       event.Skip()
 
       self.canvas._BackgroundDirty = True
       self.mousePositions.append(event.GetPositionTuple())
-
       if len(self.mousePositions) == 2:
          self.mouseRel = ((self.mousePositions[1][0] - self.mousePositions[0][0]),
                           -(self.mousePositions[1][1] - self.mousePositions[0][1]))
          self.mousePositions.popleft()
+
       # Move all the selected rects
-      if event.Dragging():
+      if event.Dragging() and not self.ctrl_down:
          if self.selectedRects:
             for rectNum in self.selectedRects:
                if self.rects[rectNum][0] not in self.canvas._ForeDrawList:
@@ -180,15 +190,20 @@ class NavigatorController:
             pass
 
    def onLUp(self, event):
+      # Stop drawing
+      if self.Drawing:
+         self.Drawing = False
+         if self.RBRect:
+            WH = event.Coords - self.StartPointWorld
+            wx.CallAfter(self.onBandBoxDrawn, (self.StartPointWorld, WH))
+         self.RBRect = None
+         self.StartPointWorld = None
+
       # Set all selected rects back to background
       for rectObj in self.selectedRects:
          self.rects[rectObj][0].PutInBackground()
          self.rects[rectObj][0].Text.PutInBackground()
       self.canvas.Draw()
-
-      if self.Selecting:
-         self.Selecting = False
-      self.StartPointWorld = None
 
    #--------------------------------------------------------------------------------------#
    # ContextMenu with Single Object Selected Bindings
@@ -263,3 +278,24 @@ class NavigatorController:
       object.Text.PutInForeground()
       object.SetLineColor(NavigatorModel.colors['WHITE'])
       self.canvas.Draw()
+
+   def onBandBoxDrawn(self, rect):
+      # Get the four corner coordinates of the RBRect
+      x1, y1 = rect[0][0], rect[0][1]
+      x2, y2 = rect[1][0]+x1, rect[1][1]+y1
+      # Make sure x1<x2 and y1<y2
+      if x2 <= x1:
+         x1, x2 = x2, x1
+      if y2 <= y1:
+         y1, y2 = y2, y1
+      for rectNum in self.rects:
+         if x1 <= self.rects[rectNum][0].BoundingBox.Center[0] <= x2 and \
+            y1 <= self.rects[rectNum][0].BoundingBox.Center[1] <= y2:
+            print rectNum
+            self.selectedRects.append(self.rects[rectNum][0].Name)
+            self.rects[rectNum][0].PutInForeground() # clicked rect pops to top
+            self.rects[rectNum][0].Text.PutInForeground()
+            self.rects[rectNum][0].SetLineColor(NavigatorModel.colors['WHITE'])
+      self.canvas.Draw()
+
+
