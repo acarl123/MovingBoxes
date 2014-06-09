@@ -19,9 +19,17 @@ class NavRect:
    def parents(self):
       return self._parents
 
+   @parents.setter
+   def parents(self, value):
+      self.parents = value
+
    @property
    def children(self):
       return self._children
+
+   @children.setter
+   def children(self, value):
+      self.children = value
 
    def __init__(self, canvas, text, xy, wh, LineWidth, Fillcolor):
       self.rect = canvas.AddRectangle(canvas.PixelToWorld(xy), wh, LineWidth=LineWidth, FillColor=Fillcolor)
