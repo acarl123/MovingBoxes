@@ -1,8 +1,8 @@
 from collections import deque
 from NavigatorView import NavigatorFrame
 from wx.lib.floatcanvas import NavCanvas, FloatCanvas, Resources
-
 import NavigatorModel
+import os
 import random
 import wx
 FloatCanvas.FloatCanvas.HitTest = NavigatorModel.BB_HitTest
@@ -23,6 +23,7 @@ class NavigatorController:
 
       # Bind normal events
       self.mainWindow.Bind(wx.EVT_MENU, self.onExit, self.mainWindow.menuExit)
+      self.mainWindow.Bind(wx.EVT_MENU, self.onExport, self.mainWindow.menuExport)
       self.mainWindow.Bind(wx.EVT_MOUSEWHEEL, self.onScroll)
       self.canvas.Bind(wx.EVT_CONTEXT_MENU, self.onContextMenu)
       self.canvas.Bind(wx.EVT_KEY_DOWN, self.onKeyEvents)
@@ -39,6 +40,9 @@ class NavigatorController:
       self.RBRect = None
       self.StartPointWorld = None
       self.Tol = 5
+      # How you pre-establish a file filter so the dialog only shows these extensions
+      self.wildcard = "PNG files (*.png)|*.png|"    \
+                      "JPG files (*.jpg;*.jpeg)|*.jpg;*.jpeg|"
       self.enable()
 
       # @TODO: Remove this in the future, but for now populate the screen for prototyping
@@ -84,6 +88,15 @@ class NavigatorController:
       self.mainWindow.Destroy()
       exit()
 
+   def onExport(self, event):
+      dlg = wx.FileDialog(self.canvas, message="Save file as ...", defaultDir=os.getcwd(),
+                          defaultFile="", wildcard="*png", style=wx.SAVE)
+      if dlg.ShowModal() == wx.ID_OK:
+         path = dlg.GetPath()
+         if not(path[-4:].lower() == ".png"):
+            path = path+".png"
+         self.canvas.SaveAsImage(path)
+
    def onScroll(self, event):
       scrollFactor = event.GetWheelRotation()
       if scrollFactor < 0:
@@ -94,7 +107,7 @@ class NavigatorController:
 
    def onContextMenu(self, event):
       if len(self.selectedRects) == 0:
-         #@TODO: add context menu for no rects selected
+         #@TODO: add context menu for no items
          return
       elif len(self.selectedRects) == 1:
          if not hasattr(self, 'popupID1'):
