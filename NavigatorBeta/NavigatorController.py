@@ -1,7 +1,7 @@
 from collections import deque
 from NavigatorView import NavigatorFrame
 from wx.lib.floatcanvas import NavCanvas, FloatCanvas, Resources
-from wx.lib.floatcanvas.Utilities import GUI
+
 import NavigatorModel
 import random
 import wx
@@ -35,7 +35,6 @@ class NavigatorController:
       self.mousePositions = deque([])
       self.mouseRel = 0, 0
       self.ctrl_down = False
-
       self.Drawing = False
       self.RBRect = None
       self.StartPointWorld = None
@@ -56,10 +55,11 @@ class NavigatorController:
          rect = self.canvas.AddRectangle(self.canvas.PixelToWorld(xy), (80, 35), LineWidth=0, FillColor=NavigatorModel.colors['BLUE'])
          rect.Name = str(len(self.rects))
          rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
+         rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
          rect.Text = self.canvas.AddScaledText('Number ' + `i`, self.canvas.PixelToWorld((xy[0]+40, xy[1]-17.5)), 7, Position = "cc")
          self.rects[rect.Name] = [rect]
          rect.PutInBackground()
-         rect.Text.PutInBackground()
+         # rect.Text.PutInBackground()
       self.canvas.Draw()
 
    def show(self):
@@ -94,6 +94,7 @@ class NavigatorController:
 
    def onContextMenu(self, event):
       if len(self.selectedRects) == 0:
+         #@TODO: add context menu for no rects selected
          return
       elif len(self.selectedRects) == 1:
          if not hasattr(self, 'popupID1'):
@@ -279,6 +280,31 @@ class NavigatorController:
       object.SetLineColor(NavigatorModel.colors['WHITE'])
       self.canvas.Draw()
 
+   def onRectLeftDClick(self, object, event):
+      randnum = random
+      randnum.seed()
+      # Get the right middle position of the rectangle
+      # xy = object.BoundingBox.Right, object.BoundingBox.Center[1] - object.BoundingBox.Height/4
+      # for revision in range(randnum.randint(1, 5)):
+      #    index = revision+1
+      #
+      #    self.rects[object.Name] = self.canvas.AddRectangle(xy, (40, 17.5), LineWidth=0, FillColor=NavigatorModel.colors['BLUE'])
+      #    xy = xy[0] + 40, xy[1]
+      # self.canvas.Draw()
+
+
+
+         #
+         # xy = (randnum.randint(0, 800), randnum.randint(0, 600))
+         # rect = self.canvas.AddRectangle(self.canvas.PixelToWorld(xy), (80, 35), LineWidth=0, FillColor=NavigatorModel.colors['BLUE'])
+         # rect.Name = str(len(self.rects))
+         # rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
+         # rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
+         # rect.Text = self.canvas.AddScaledText('Number ' + `i`, self.canvas.PixelToWorld((xy[0]+40, xy[1]-17.5)), 7, Position = "cc")
+         # self.rects[rect.Name] = [rect]
+         # rect.PutInBackground()
+         # rect.Text.PutInBackground()
+
    def onBandBoxDrawn(self, rect):
       # Get the four corner coordinates of the RBRect
       x1, y1 = rect[0][0], rect[0][1]
@@ -291,7 +317,6 @@ class NavigatorController:
       for rectNum in self.rects:
          if x1 <= self.rects[rectNum][0].BoundingBox.Center[0] <= x2 and \
             y1 <= self.rects[rectNum][0].BoundingBox.Center[1] <= y2:
-            print rectNum
             self.selectedRects.append(self.rects[rectNum][0].Name)
             self.rects[rectNum][0].PutInForeground() # clicked rect pops to top
             self.rects[rectNum][0].Text.PutInForeground()
