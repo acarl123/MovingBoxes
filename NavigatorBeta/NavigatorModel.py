@@ -5,7 +5,7 @@ import pygame
 rectDict = {}
 colors = {
    'BLACK' : wx.Colour(0, 0, 0),
-   'BLUE' : wx.Colour(100, 223, 237, 200),
+   'BLUE' : wx.Colour(100, 223, 237),
    'GREY' : wx.Colour(173, 173, 173),
    'RED' : wx.Colour(255, 0, 0),
    'WHITE' : wx.Colour(255, 255, 255),

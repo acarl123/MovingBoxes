@@ -2,6 +2,7 @@ from collections import deque
 from NavigatorView import NavigatorFrame
 from wx.lib.floatcanvas import NavCanvas, FloatCanvas, Resources
 
+from CustomRect import NavRect
 import NavigatorModel
 import random
 import wx
@@ -52,13 +53,14 @@ class NavigatorController:
       randnum.seed()
       for i in xrange(50):
          xy = (randnum.randint(0, 800), randnum.randint(0, 600))
-         rect = self.canvas.AddRectangle(self.canvas.PixelToWorld(xy), (80, 35), LineWidth=0, FillColor=NavigatorModel.colors['BLUE'])
-         rect.Name = str(len(self.rects))
-         rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
-         rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
-         rect.Text = self.canvas.AddScaledText('Number ' + `i`, self.canvas.PixelToWorld((xy[0]+40, xy[1]-17.5)), 7, Position = "cc")
-         self.rects[rect.Name] = [rect]
-         rect.PutInBackground()
+         # rect = self.canvas.AddRectangle(self.canvas.PixelToWorld(xy), (80, 35), LineWidth=0, FillColor=NavigatorModel.colors['BLUE'])
+         rect = NavRect(self.canvas, 'Number %s' % i, xy, (80, 35), 5, NavigatorModel.colors['BLUE'])
+         rect.rect.Name = str(len(self.rects))
+         rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
+         rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
+         # rect.Text = self.canvas.AddScaledText('Number ' + `i`, self.canvas.PixelToWorld((xy[0]+40, xy[1]-17.5)), 7, Position = "cc")
+         self.rects[rect.rect.Name] = [rect.rect]
+         rect.rect.PutInBackground()
          # rect.Text.PutInBackground()
       self.canvas.Draw()
 
