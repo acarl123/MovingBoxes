@@ -1,7 +1,6 @@
 from collections import deque
 from NavigatorView import NavigatorFrame
 from wx.lib.floatcanvas import NavCanvas, FloatCanvas, Resources
-
 from CustomRect import NavRect
 import NavigatorModel
 import os
@@ -53,7 +52,7 @@ class NavigatorController:
    def populateScreen(self):
       randnum = random
       randnum.seed()
-      for i in xrange(50):
+      for i in xrange(2):
          xy = (randnum.randint(0, 800), randnum.randint(0, 600))
          # rect = self.canvas.AddRectangle(self.canvas.PixelToWorld(xy), (80, 35), LineWidth=0, FillColor=NavigatorModel.colors['BLUE'])
          rect = NavRect(self.canvas, 'Number %s' % i, xy, (80, 35), 0, NavigatorModel.colors['BLUE'])
@@ -64,6 +63,11 @@ class NavigatorController:
          self.rects[rect.rect.Name] = rect
          rect.rect.PutInBackground()
          rect.rect.Text.PutInBackground()
+
+      # Draw an arrow between two random rectangles
+      xy1 = self.rects['0'].rect.BoundingBox.Right, self.rects['0'].BoundingBox.Center[1]
+
+
       self.canvas.Draw()
 
    def show(self):
@@ -89,8 +93,6 @@ class NavigatorController:
       exit()
 
    def onExport(self, event):
-      print 'on export'
-      import os
       dlg = wx.FileDialog(self.canvas, message="Save file as ...", defaultDir=os.getcwd(),
                           defaultFile="", wildcard="*.png", style=wx.SAVE)
       if dlg.ShowModal() == wx.ID_OK:
