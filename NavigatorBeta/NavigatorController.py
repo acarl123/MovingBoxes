@@ -1,7 +1,7 @@
 from collections import deque
 from NavigatorView import NavigatorFrame
 from wx.lib.floatcanvas import NavCanvas, FloatCanvas, Resources
-from CustomRect import NavRect
+from NavigatorModel import NavRect
 import NavigatorModel
 import os
 import random
@@ -20,7 +20,7 @@ class NavigatorController:
       self.canvas.Draw()
 
       # Setup model
-      self.rectModel = NavigatorModel.RectInfo
+      self.rectModel = NavigatorModel.NavRect
 
       # Bind normal events
       self.mainWindow.Bind(wx.EVT_MENU, self.onExit, self.mainWindow.menuExit)
