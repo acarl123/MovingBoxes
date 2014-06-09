@@ -25,6 +25,7 @@ class NavigatorController:
 
       # Bind normal events
       self.mainWindow.Bind(wx.EVT_MENU, self.onExit, self.mainWindow.menuExit)
+      self.mainWindow.Bind(wx.EVT_MENU, self.onExport, self.mainWindow.menuExport)
       self.mainWindow.Bind(wx.EVT_MOUSEWHEEL, self.onScroll)
       self.canvas.Bind(wx.EVT_CONTEXT_MENU, self.onContextMenu)
       self.canvas.Bind(wx.EVT_KEY_DOWN, self.onKeyEvents)
@@ -59,10 +60,9 @@ class NavigatorController:
          rect.rect.Name = str(len(self.rects))
          rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
          rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
-         # rect.Text = self.canvas.AddScaledText('Number ' + `i`, self.canvas.PixelToWorld((xy[0]+40, xy[1]-17.5)), 7, Position = "cc")
          self.rects[rect.rect.Name] = [rect.rect]
          rect.rect.PutInBackground()
-         # rect.Text.PutInBackground()
+         rect.rect.Text.PutInBackground()
       self.canvas.Draw()
 
    def show(self):
@@ -86,6 +86,17 @@ class NavigatorController:
    def onExit(self, event):
       self.mainWindow.Destroy()
       exit()
+
+   def onExport(self, event):
+      print 'on export'
+      import os
+      dlg = wx.FileDialog(self.canvas, message="Save file as ...", defaultDir=os.getcwd(),
+                          defaultFile="", wildcard="*.png", style=wx.SAVE)
+      if dlg.ShowModal() == wx.ID_OK:
+         path = dlg.GetPath()
+         if not(path[-4:].lower() == ".png"):
+            path = path+".png"
+         self.canvas.SaveAsImage(path)
 
    def onScroll(self, event):
       scrollFactor = event.GetWheelRotation()
