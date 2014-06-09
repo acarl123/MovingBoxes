@@ -40,9 +40,6 @@ class NavigatorController:
       self.RBRect = None
       self.StartPointWorld = None
       self.Tol = 5
-      # How you pre-establish a file filter so the dialog only shows these extensions
-      self.wildcard = "PNG files (*.png)|*.png|"    \
-                      "JPG files (*.jpg;*.jpeg)|*.jpg;*.jpeg|"
       self.enable()
 
       # @TODO: Remove this in the future, but for now populate the screen for prototyping
@@ -63,7 +60,7 @@ class NavigatorController:
          rect.Text = self.canvas.AddScaledText('Number ' + `i`, self.canvas.PixelToWorld((xy[0]+40, xy[1]-17.5)), 7, Position = "cc")
          self.rects[rect.Name] = [rect]
          rect.PutInBackground()
-         # rect.Text.PutInBackground()
+         rect.Text.PutInBackground()
       self.canvas.Draw()
 
    def show(self):
@@ -110,15 +107,15 @@ class NavigatorController:
          #@TODO: add context menu for no items
          return
       elif len(self.selectedRects) == 1:
-         if not hasattr(self, 'popupID1'):
-            self.popupID1 = wx.NewId()
-            self.popupID2 = wx.NewId()
-            self.popupID3 = wx.NewId()
-            self.popupID4 = wx.NewId()
-            self.canvas.Bind(wx.EVT_MENU, self.onExpand, id=self.popupID1)
-            self.canvas.Bind(wx.EVT_MENU, self.onAttributes, id=self.popupID2)
-            self.canvas.Bind(wx.EVT_MENU, self.onDelete, id=self.popupID3)
-            self.canvas.Bind(wx.EVT_MENU, self.onLock, id=self.popupID4)
+         # if not hasattr(self, 'popupID1'):
+         self.popupID1 = wx.NewId()
+         self.popupID2 = wx.NewId()
+         self.popupID3 = wx.NewId()
+         self.popupID4 = wx.NewId()
+         self.canvas.Bind(wx.EVT_MENU, self.onExpand, id=self.popupID1)
+         self.canvas.Bind(wx.EVT_MENU, self.onAttributes, id=self.popupID2)
+         self.canvas.Bind(wx.EVT_MENU, self.onDelete, id=self.popupID3)
+         self.canvas.Bind(wx.EVT_MENU, self.onLock, id=self.popupID4)
          menu = wx.Menu()
          menu.Append(self.popupID1, 'Expand')
          menu.Append(self.popupID2, 'Attributes/Properties')
@@ -128,15 +125,14 @@ class NavigatorController:
          menu.Destroy()
          return
       elif len(self.selectedRects) > 1:
-         if not hasattr(self, 'popupID1'):
-            self.popupID1 = wx.NewId()
-            self.popupID2 = wx.NewId()
-            self.popupID3 = wx.NewId()
-            self.popupID4 = wx.NewId()
-            self.canvas.Bind(wx.EVT_MENU, self.onArrangeHorizontally, id=self.popupID1)
-            self.canvas.Bind(wx.EVT_MENU, self.onArrangeVertically, id=self.popupID2)
-            self.canvas.Bind(wx.EVT_MENU, self.onDelete, id=self.popupID3)
-            self.canvas.Bind(wx.EVT_MENU, self.onLock, id=self.popupID4)
+         self.popupID1 = wx.NewId()
+         self.popupID2 = wx.NewId()
+         self.popupID3 = wx.NewId()
+         self.popupID4 = wx.NewId()
+         self.canvas.Bind(wx.EVT_MENU, self.onArrangeHorizontally, id=self.popupID1)
+         self.canvas.Bind(wx.EVT_MENU, self.onArrangeVertically, id=self.popupID2)
+         self.canvas.Bind(wx.EVT_MENU, self.onDelete, id=self.popupID3)
+         self.canvas.Bind(wx.EVT_MENU, self.onLock, id=self.popupID4)
          menu = wx.Menu()
          menu.Append(self.popupID1, 'Arrange Horizontally')
          menu.Append(self.popupID2, 'Arrange Vertically')
