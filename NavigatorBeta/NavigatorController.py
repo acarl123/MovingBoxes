@@ -60,7 +60,8 @@ class NavigatorController:
          rect.rect.Name = str(len(self.rects))
          rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
          rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
-         self.rects[rect.rect.Name] = [rect.rect]
+         # rect.Text = self.canvas.AddScaledText('Number ' + `i`, self.canvas.PixelToWorld((xy[0]+40, xy[1]-17.5)), 7, Position = "cc")
+         self.rects[rect.rect.Name] = rect
          rect.rect.PutInBackground()
          rect.rect.Text.PutInBackground()
       self.canvas.Draw()
@@ -162,7 +163,7 @@ class NavigatorController:
 
       if not self.ctrl_down:
          for rectNum in self.rects:
-            self.rects[rectNum][0].SetLineColor(wx.Colour(0, 0, 0))
+            self.rects[rectNum].rect.SetLineColor(wx.Colour(0, 0, 0))
          self.selectedRects = []
 
    # @TODO: fix the logic of where the band box stuff should go and clean up the code a bit
@@ -195,11 +196,11 @@ class NavigatorController:
       if event.Dragging() and not self.ctrl_down:
          if self.selectedRects:
             for rectNum in self.selectedRects:
-               if self.rects[rectNum][0] not in self.canvas._ForeDrawList:
-                  self.rects[rectNum][0].PutInForeground() # Moving rects go in foreground
-                  self.rects[rectNum][0].Text.PutInForeground()
-               self.rects[rectNum][0].Move(self.mouseRel)
-               self.rects[rectNum][0].Text.Move(self.mouseRel)
+               if self.rects[rectNum].rect not in self.canvas._ForeDrawList:
+                  self.rects[rectNum].rect.PutInForeground() # Moving rects go in foreground
+                  self.rects[rectNum].rect.Text.PutInForeground()
+               self.rects[rectNum].rect.Move(self.mouseRel)
+               self.rects[rectNum].rect.Text.Move(self.mouseRel)
             self.canvas.Draw(False)
          else:
             pass
@@ -216,8 +217,8 @@ class NavigatorController:
 
       # Set all selected rects back to background
       for rectObj in self.selectedRects:
-         self.rects[rectObj][0].PutInBackground()
-         self.rects[rectObj][0].Text.PutInBackground()
+         self.rects[rectObj].rect.PutInBackground()
+         self.rects[rectObj].rect.Text.PutInBackground()
       self.canvas.Draw()
 
    #--------------------------------------------------------------------------------------#
@@ -235,39 +236,39 @@ class NavigatorController:
    def onArrangeHorizontally(self, event):
       if self.selectedRects:
          firstRect = self.selectedRects[0]
-         xpos1 = self.rects[firstRect][0].BoundingBox.Left
-         ypos1 = self.rects[firstRect][0].BoundingBox.Top
+         xpos1 = self.rects[firstRect].rect.BoundingBox.Left
+         ypos1 = self.rects[firstRect].rect.BoundingBox.Top
          index = 0
          for rectNum in self.selectedRects:
-            xpos2 = self.rects[rectNum][0].BoundingBox.Left
-            ypos2 = self.rects[rectNum][0].BoundingBox.Top
+            xpos2 = self.rects[rectNum].rect.BoundingBox.Left
+            ypos2 = self.rects[rectNum].rect.BoundingBox.Top
             differencex = xpos1-xpos2+index
             differencey = ypos1-ypos2
-            self.rects[rectNum][0].Move((differencex, differencey))
-            self.rects[rectNum][0].Text.Move((differencex, differencey))
-            index += self.rects[rectNum][0].BoundingBox.Width + 5
+            self.rects[rectNum].rect.Move((differencex, differencey))
+            self.rects[rectNum].rect.Text.Move((differencex, differencey))
+            index += self.rects[rectNum].rect.BoundingBox.Width + 5
          self.canvas.Draw()
 
    def onArrangeVertically(self, event):
       if self.selectedRects:
          firstRect = self.selectedRects[0]
-         xpos1 = self.rects[firstRect][0].BoundingBox.Left
-         ypos1 = self.rects[firstRect][0].BoundingBox.Top
+         xpos1 = self.rects[firstRect].rect.BoundingBox.Left
+         ypos1 = self.rects[firstRect].rect.BoundingBox.Top
          index = 0
          for rectNum in self.selectedRects:
-            xpos2 = self.rects[rectNum][0].BoundingBox.Left
-            ypos2 = self.rects[rectNum][0].BoundingBox.Top
+            xpos2 = self.rects[rectNum].rect.BoundingBox.Left
+            ypos2 = self.rects[rectNum].rect.BoundingBox.Top
             differencex = xpos1-xpos2
             differencey = ypos1-ypos2+index
-            self.rects[rectNum][0].Move((differencex, differencey))
-            self.rects[rectNum][0].Text.Move((differencex, differencey))
-            index -= self.rects[rectNum][0].BoundingBox.Height + 10
+            self.rects[rectNum].rect.Move((differencex, differencey))
+            self.rects[rectNum].rect.Text.Move((differencex, differencey))
+            index -= self.rects[rectNum].rect.BoundingBox.Height + 10
          self.canvas.Draw()
 
    def onDelete(self, event):
       for rectNum in self.selectedRects:
-         self.rects[rectNum][0].UnBindAll()
-         self.canvas.RemoveObjects((self.rects[rectNum][0], self.rects[rectNum][0].Text))
+         self.rects[rectNum].rect.UnBindAll()
+         self.canvas.RemoveObjects((self.rects[rectNum].rect, self.rects[rectNum].rect.Text))
          del self.rects[rectNum]
       self.selectedRects=[]
       self.canvas.Draw()
@@ -285,7 +286,7 @@ class NavigatorController:
       else:
          if object.Name not in self.selectedRects:
             for rectNum in self.selectedRects:
-               self.rects[rectNum][0].SetLineColor(NavigatorModel.colors['BLACK'])
+               self.rects[rectNum].rect.SetLineColor(NavigatorModel.colors['BLACK'])
 
             self.selectedRects = []
             self.selectedRects.append(object.Name)
@@ -329,12 +330,12 @@ class NavigatorController:
       if y2 <= y1:
          y1, y2 = y2, y1
       for rectNum in self.rects:
-         if x1 <= self.rects[rectNum][0].BoundingBox.Center[0] <= x2 and \
-            y1 <= self.rects[rectNum][0].BoundingBox.Center[1] <= y2:
-            self.selectedRects.append(self.rects[rectNum][0].Name)
-            self.rects[rectNum][0].PutInForeground() # clicked rect pops to top
-            self.rects[rectNum][0].Text.PutInForeground()
-            self.rects[rectNum][0].SetLineColor(NavigatorModel.colors['WHITE'])
+         if x1 <= self.rects[rectNum].rect.BoundingBox.Center[0] <= x2 and \
+            y1 <= self.rects[rectNum].rect.BoundingBox.Center[1] <= y2:
+            self.selectedRects.append(self.rects[rectNum].rect.Name)
+            self.rects[rectNum].rect.PutInForeground() # clicked rect pops to top
+            self.rects[rectNum].rect.Text.PutInForeground()
+            self.rects[rectNum].rect.SetLineColor(NavigatorModel.colors['WHITE'])
       self.canvas.Draw()
 
 
