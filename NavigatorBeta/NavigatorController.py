@@ -65,7 +65,9 @@ class NavigatorController:
          rect.rect.Text.PutInBackground()
 
       # Draw an arrow between two random rectangles
-      xy1 = self.rects['0'].rect.BoundingBox.Right, self.rects['0'].BoundingBox.Center[1]
+      xy1 = self.rects['0'].rect.BoundingBox.Right, self.rects['0'].rect.BoundingBox.Center[1]
+      xy2 = self.rects['1'].rect.BoundingBox.Left, self.rects['1'].rect.BoundingBox.Center[1]
+      self.canvas.AddArrowLine((xy1, xy2), LineWidth =2, LineColor=NavigatorModel.colors['BLACK'], ArrowHeadSize=12)
 
 
       self.canvas.Draw()
@@ -110,19 +112,18 @@ class NavigatorController:
       self.canvas.Zoom(scrollFactor, event.GetPositionTuple(), 'pixel')
 
    def onContextMenu(self, event):
+      self.popupID1 = wx.NewId()
+      self.popupID2 = wx.NewId()
+      self.popupID3 = wx.NewId()
+      self.popupID4 = wx.NewId()
       if len(self.selectedRects) == 0:
          #@TODO: add context menu for no rects selected
          return
       elif len(self.selectedRects) == 1:
-         if not hasattr(self, 'popupID1'):
-            self.popupID1 = wx.NewId()
-            self.popupID2 = wx.NewId()
-            self.popupID3 = wx.NewId()
-            self.popupID4 = wx.NewId()
-            self.canvas.Bind(wx.EVT_MENU, self.onExpand, id=self.popupID1)
-            self.canvas.Bind(wx.EVT_MENU, self.onAttributes, id=self.popupID2)
-            self.canvas.Bind(wx.EVT_MENU, self.onDelete, id=self.popupID3)
-            self.canvas.Bind(wx.EVT_MENU, self.onLock, id=self.popupID4)
+         self.canvas.Bind(wx.EVT_MENU, self.onExpand, id=self.popupID1)
+         self.canvas.Bind(wx.EVT_MENU, self.onAttributes, id=self.popupID2)
+         self.canvas.Bind(wx.EVT_MENU, self.onDelete, id=self.popupID3)
+         self.canvas.Bind(wx.EVT_MENU, self.onLock, id=self.popupID4)
          menu = wx.Menu()
          menu.Append(self.popupID1, 'Expand')
          menu.Append(self.popupID2, 'Attributes/Properties')
@@ -132,15 +133,10 @@ class NavigatorController:
          menu.Destroy()
          return
       elif len(self.selectedRects) > 1:
-         if not hasattr(self, 'popupID1'):
-            self.popupID1 = wx.NewId()
-            self.popupID2 = wx.NewId()
-            self.popupID3 = wx.NewId()
-            self.popupID4 = wx.NewId()
-            self.canvas.Bind(wx.EVT_MENU, self.onArrangeHorizontally, id=self.popupID1)
-            self.canvas.Bind(wx.EVT_MENU, self.onArrangeVertically, id=self.popupID2)
-            self.canvas.Bind(wx.EVT_MENU, self.onDelete, id=self.popupID3)
-            self.canvas.Bind(wx.EVT_MENU, self.onLock, id=self.popupID4)
+         self.canvas.Bind(wx.EVT_MENU, self.onArrangeHorizontally, id=self.popupID1)
+         self.canvas.Bind(wx.EVT_MENU, self.onArrangeVertically, id=self.popupID2)
+         self.canvas.Bind(wx.EVT_MENU, self.onDelete, id=self.popupID3)
+         self.canvas.Bind(wx.EVT_MENU, self.onLock, id=self.popupID4)
          menu = wx.Menu()
          menu.Append(self.popupID1, 'Arrange Horizontally')
          menu.Append(self.popupID2, 'Arrange Vertically')
