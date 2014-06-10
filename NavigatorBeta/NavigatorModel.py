@@ -96,6 +96,8 @@ class NavRect:
       self._parents = []
       self._children = []
 
+      self._revShown = False
+
       self.rect.Name = self._name
 
       # TODO: Need to query EFS for list of parents and children
