@@ -1,5 +1,4 @@
 import wx
-import pygam
 
 
 colors = {
@@ -79,21 +78,30 @@ class NavRect:
    def children(self, value):
       self.children = value
 
-   def __init__(self, canvas, text, xy, wh, LineWidth, Fillcolor):
+   @property
+   def name(self):
+      return self._name
+
+   @name.setter
+   def name(self, value):
+      self._name = value
+
+   def __init__(self, name, canvas, text, xy, wh, LineWidth, Fillcolor):
       self.rect = canvas.AddRectangle(canvas.PixelToWorld(xy), wh, LineWidth=LineWidth, FillColor=Fillcolor)
       self.text = canvas.AddScaledText(text, canvas.PixelToWorld((xy[0] + 40, xy[1] - 17.5)), 7, Position="cc")
       self.rect.Text = self.text
+      self._name = name
       self._bo = None
       self._revisions = []
       self._parents = []
       self._children = []
 
+      self.rect.Name = self._name
+
       # TODO: Need to query EFS for list of parents and children
 
 
 class RectDict:
-   _rectDict = {}
-
    @property
    def rectDict(self):
       return self._rectDict
@@ -101,3 +109,35 @@ class RectDict:
    @rectDict.setter
    def rectDict(self, value):
       self._rectDict = value
+
+   @property
+   def keys(self):
+      return self._rectDict.keys()
+
+   @property
+   def values(self):
+      return self._rectDict.values()
+
+   # Classmethods
+   def __len__(self):
+      return len(self._rectDict)
+
+   def __getitem__(self, item):
+      try:
+         if isinstance(item, (int, long)):
+            return self._rectDict[item]
+         elif isinstance(item, (str)):
+            return self._rectDict[int(item)]
+         elif isinstance(item, (NavRect)):
+            return self._rectDict[item.name]
+         else:
+            print 'Key Search for type %s not supported' % item
+      except KeyError:
+         print item
+
+   def __init__(self):
+      self._rectDict = {}
+
+   # Custom methods to add functionality to the main dictionary
+   def append(self, rectObj):
+      self._rectDict[int(rectObj.rect.Name)] = rectObj

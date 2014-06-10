@@ -1,7 +1,7 @@
 from collections import deque
 from NavigatorView import NavigatorFrame
 from wx.lib.floatcanvas import NavCanvas, FloatCanvas, Resources
-from NavigatorModel import NavRect
+from NavigatorModel import NavRect, RectDict
 import NavigatorModel
 import os
 import random
@@ -31,7 +31,7 @@ class NavigatorController:
       self.canvas.Bind(wx.EVT_KEY_UP, self.onKeyEvents)
 
       # Initialize member variables
-      self.rects = {}
+      self.rects = RectDict()
       self.selectedRects = []
       self.collidingRects = []
       self.mousePositions = deque([])
@@ -46,7 +46,6 @@ class NavigatorController:
       self.arrowCount = 0
       self.revShown = False
 
-
       # @TODO: Remove this in the future, but for now populate the screen for prototyping
       self.enable()
       self.populateScreen()
@@ -60,12 +59,11 @@ class NavigatorController:
       for i in xrange(2):
          xy = (randnum.randint(0, 800), randnum.randint(0, 600))
          # rect = self.canvas.AddRectangle(self.canvas.PixelToWorld(xy), (80, 35), LineWidth=0, FillColor=NavigatorModel.colors['BLUE'])
-         rect = NavRect(self.canvas, 'Number %s' % i, xy, (80, 35), 0, NavigatorModel.colors['BLUE'])
-         rect.rect.Name = str(len(self.rects))
+         rect = NavRect(str(len(self.rects)), self.canvas, 'Number %s' % i, xy, (80, 35), 0, NavigatorModel.colors['BLUE'])
          rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
          rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
          # rect.Text = self.canvas.AddScaledText('Number ' + `i`, self.canvas.PixelToWorld((xy[0]+40, xy[1]-17.5)), 7, Position = "cc")
-         self.rects[rect.rect.Name] = rect
+         self.rects.append(rect)
          rect.rect.PutInBackground()
          rect.rect.Text.PutInBackground()
          if i>=1:
@@ -163,7 +161,7 @@ class NavigatorController:
       self.StartPointWorld = event.Coords
 
       if not self.ctrl_down:
-         for rectNum in self.rects:
+         for rectNum in xrange(len(self.rects)):
             self.rects[rectNum].rect.SetLineColor(wx.Colour(0, 0, 0))
          self.selectedRects = []
 
@@ -333,7 +331,7 @@ class NavigatorController:
          x1, x2 = x2, x1
       if y2 <= y1:
          y1, y2 = y2, y1
-      for rectNum in self.rects:
+      for rectNum in xrange(len(self.rects)):
          if x1 <= self.rects[rectNum].rect.BoundingBox.Center[0] <= x2 and \
             y1 <= self.rects[rectNum].rect.BoundingBox.Center[1] <= y2:
             self.selectedRects.append(self.rects[rectNum].rect.Name)
