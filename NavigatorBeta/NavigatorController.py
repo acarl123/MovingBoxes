@@ -41,7 +41,10 @@ class NavigatorController:
       self.RBRect = None
       self.StartPointWorld = None
       self.Tol = 5
+
       self.allArrows = []
+      self.arrowCount = 0
+      self.revShown = False
 
 
       # @TODO: Remove this in the future, but for now populate the screen for prototyping
@@ -54,7 +57,7 @@ class NavigatorController:
    def populateScreen(self):
       randnum = random
       randnum.seed()
-      for i in xrange(5):
+      for i in xrange(2):
          xy = (randnum.randint(0, 800), randnum.randint(0, 600))
          # rect = self.canvas.AddRectangle(self.canvas.PixelToWorld(xy), (80, 35), LineWidth=0, FillColor=NavigatorModel.colors['BLUE'])
          rect = NavRect(self.canvas, 'Number %s' % i, xy, (80, 35), 0, NavigatorModel.colors['BLUE'])
@@ -199,6 +202,7 @@ class NavigatorController:
                   self.rects[rectNum].rect.Text.PutInForeground()
                self.rects[rectNum].rect.Move(self.mouseRel)
                self.rects[rectNum].rect.Text.Move(self.mouseRel)
+               self.redrawArrows()
             self.canvas.Draw(False)
          else:
             pass
@@ -245,6 +249,7 @@ class NavigatorController:
             self.rects[rectNum].rect.Move((differencex, differencey))
             self.rects[rectNum].rect.Text.Move((differencex, differencey))
             index += self.rects[rectNum].rect.BoundingBox.Width + 5
+         self.redrawArrows()
          self.canvas.Draw()
 
    def onArrangeVertically(self, event):
@@ -261,6 +266,7 @@ class NavigatorController:
             self.rects[rectNum].rect.Move((differencex, differencey))
             self.rects[rectNum].rect.Text.Move((differencex, differencey))
             index -= self.rects[rectNum].rect.BoundingBox.Height + 10
+         self.redrawArrows()
          self.canvas.Draw()
 
    def onDelete(self, event):
@@ -269,6 +275,7 @@ class NavigatorController:
          self.canvas.RemoveObjects((self.rects[rectNum].rect, self.rects[rectNum].rect.Text))
          del self.rects[rectNum]
       self.selectedRects=[]
+      self.redrawArrows()
       self.canvas.Draw()
 
    def onLock(self, event):
@@ -297,26 +304,14 @@ class NavigatorController:
       randnum = random
       randnum.seed()
       # Get the right middle position of the rectangle
-      # xy = object.BoundingBox.Right, object.BoundingBox.Center[1] - object.BoundingBox.Height/4
-      # for revision in range(randnum.randint(1, 5)):
-      #    index = revision+1
-      #
-      #    self.rects[object.Name] = self.canvas.AddRectangle(xy, (40, 17.5), LineWidth=0, FillColor=NavigatorModel.colors['BLUE'])
-      #    xy = xy[0] + 40, xy[1]
-      # self.canvas.Draw()
-
-
-
-         #
-         # xy = (randnum.randint(0, 800), randnum.randint(0, 600))
-         # rect = self.canvas.AddRectangle(self.canvas.PixelToWorld(xy), (80, 35), LineWidth=0, FillColor=NavigatorModel.colors['BLUE'])
-         # rect.Name = str(len(self.rects))
-         # rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
-         # rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
-         # rect.Text = self.canvas.AddScaledText('Number ' + `i`, self.canvas.PixelToWorld((xy[0]+40, xy[1]-17.5)), 7, Position = "cc")
-         # self.rects[rect.Name] = [rect]
-         # rect.PutInBackground()
-         # rect.Text.PutInBackground()
+      xy = object.BoundingBox.Right, object.BoundingBox.Center[1] - object.BoundingBox.Height/4
+      for revision in xrange(randnum.randint(1, 5)):
+         rect = self.canvas.AddRectangle(xy, (40, 17.5), LineWidth=0, FillColor=NavigatorModel.colors['BLUE'])
+         rect.Name = '%s' % revision
+         rect.Text = self.canvas.AddScaledText('1.%s' % revision, (xy[0]+20, xy[1]+8.75), 7, Position = "cc")
+         self.rects[object.Name]._revisions.append(rect.Name)
+         xy = xy[0] + 40, xy[1]
+      self.canvas.Draw()
 
    #--------------------------------------------------------------------------------------#
    # Drawing Methods
@@ -325,8 +320,10 @@ class NavigatorController:
    def drawArrows(self, rect1, rect2):
       xy1 = rect1.BoundingBox.Right, rect1.BoundingBox.Center[1]
       xy2 = rect2.BoundingBox.Left, rect2.BoundingBox.Center[1]
-      self.canvas.AddArrowLine((xy1, xy2), LineWidth =2, LineColor=NavigatorModel.colors['BLACK'], ArrowHeadSize=12, InForeground=False)
-
+      self.arrowCount += 1
+      arrow = self.canvas.AddArrowLine((xy1, xy2), LineWidth =2, LineColor=NavigatorModel.colors['BLACK'], ArrowHeadSize=12, InForeground=True)
+      self.allArrows.append(arrow)
+      
    def drawBandBox(self, rect):
       # Get the four corner coordinates of the RBRect
       x1, y1 = rect[0][0], rect[0][1]
@@ -344,5 +341,17 @@ class NavigatorController:
             self.rects[rectNum].rect.Text.PutInForeground()
             self.rects[rectNum].rect.SetLineColor(NavigatorModel.colors['WHITE'])
       self.canvas.Draw()
+
+   # @TODO: Move this to our expand children
+   def redrawArrows(self):
+      print 'Drawing arrows'
+      self.canvas.RemoveObjects((self.allArrows))
+      self.arrowCount = 0
+      self.allArrows = []
+      for rectNum in self.rects:
+         for rect in self.rects[rectNum]._children:
+            if rect in self.rects:
+               self.drawArrows(self.rects[rectNum].rect, self.rects[rect].rect)
+
 
 
