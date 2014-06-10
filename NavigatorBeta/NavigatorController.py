@@ -202,7 +202,7 @@ class NavigatorController:
                   self.rects[rectNum].rect.Text.PutInForeground()
                self.rects[rectNum].rect.Move(self.mouseRel)
                self.rects[rectNum].rect.Text.Move(self.mouseRel)
-               # self.redrawArrows()
+               self.redrawArrows()
             self.canvas.Draw(False)
          else:
             pass
@@ -292,7 +292,6 @@ class NavigatorController:
 
             self.selectedRects = []
             self.selectedRects.append(object.Name)
-
       object.PutInForeground() # clicked rect pops to top
       object.Text.PutInForeground()
       object.SetLineColor(NavigatorModel.colors['WHITE'])
@@ -347,18 +346,17 @@ class NavigatorController:
 
    # @TODO: Move this to our expand children
    def redrawArrows(self):
-      print 'Drawing arrows'
+      # print 'Drawing arrows'
       self.canvas.RemoveObjects((self.allArrows))
       self.arrowCount = 0
       self.allArrows = []
-      for rectNum in xrange(len(self.rects)):
+      for rectNum in self.rects:
          for rect in self.rects[rectNum].children:
-            if rect in self.rects:
-               self.drawArrows(self.rects[rectNum].rect, self.rects[rect].rect)
+            # if rect in self.rects:
+            #    print 'True'
+            self.drawArrows(self.rects[rectNum].rect, self.rects[rect].rect)
 
    def draw(self):
       # self.redrawArrows()
       self.canvas.Draw()
-
-
 
