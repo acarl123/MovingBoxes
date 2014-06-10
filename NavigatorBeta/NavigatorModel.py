@@ -118,7 +118,7 @@ class RectDict:
    def values(self):
       return self._rectDict.values()
 
-   # Classmethods
+   # Class methods
    def __len__(self):
       return len(self._rectDict)
 
@@ -129,11 +129,17 @@ class RectDict:
          elif isinstance(item, (str)):
             return self._rectDict[int(item)]
          elif isinstance(item, (NavRect)):
-            return self._rectDict[item.name]
+            return self.__getitem__(item.name)
          else:
             print 'Key Search for type %s not supported' % item
       except KeyError:
          print item
+
+   def __iter__(self):
+      return self._rectDict.itervalues()
+
+   def __delitem__(self, key):
+      self._rectDict.__delitem__(int(self.__getitem__(key).name))
 
    def __init__(self):
       self._rectDict = {}

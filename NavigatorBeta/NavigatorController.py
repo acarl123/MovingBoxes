@@ -342,14 +342,15 @@ class NavigatorController:
 
    # @TODO: Move this to our expand children
    def redrawArrows(self):
-      print 'Drawing arrows'
+      # print 'Drawing arrows'
       self.canvas.RemoveObjects((self.allArrows))
       self.arrowCount = 0
       self.allArrows = []
       for rectNum in self.rects:
-         for rect in self.rects[rectNum]._children:
-            if rect in self.rects:
-               self.drawArrows(self.rects[rectNum].rect, self.rects[rect].rect)
+         for rect in self.rects[rectNum].children:
+            # if rect in self.rects:
+            #    print 'True'
+            self.drawArrows(self.rects[rectNum].rect, self.rects[rect].rect)
 
 
 
