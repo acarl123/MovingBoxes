@@ -126,9 +126,9 @@ class RectDict:
       try:
          if isinstance(item, (int, long)):
             return self._rectDict[item]
-         elif isinstance(item, (str)):
+         elif isinstance(item, basestring):
             return self._rectDict[int(item)]
-         elif isinstance(item, (NavRect)):
+         elif isinstance(item, NavRect):
             return self.__getitem__(item.name)
          else:
             print 'Key Search for type %s not supported' % item

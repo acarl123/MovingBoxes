@@ -43,7 +43,7 @@ class NavigatorController:
       self.Tol = 5
 
       self.allArrows = []
-      self.arrowCount = 0
+      self.arrowCount = 1
       self.revShown = False
 
       # @TODO: Remove this in the future, but for now populate the screen for prototyping
@@ -110,6 +110,7 @@ class NavigatorController:
          scrollFactor = 0.5
       elif scrollFactor > 0:
          scrollFactor = 2
+      self.mainWindow.NavCanvas.scale /= scrollFactor
       self.canvas.Zoom(scrollFactor, event.GetPositionTuple(), 'pixel')
 
    def onContextMenu(self, event):
@@ -167,6 +168,8 @@ class NavigatorController:
 
    # @TODO: fix the logic of where the band box stuff should go and clean up the code a bit
    def onDrag(self, event):
+      if self.mainWindow.NavCanvas.panning:
+         return
       # Draw the band box
       if self.Drawing:
          x, y = self.StartPoint
@@ -187,8 +190,8 @@ class NavigatorController:
       self.canvas._BackgroundDirty = True
       self.mousePositions.append(event.GetPositionTuple())
       if len(self.mousePositions) == 2:
-         self.mouseRel = ((self.mousePositions[1][0] - self.mousePositions[0][0]),
-                          -(self.mousePositions[1][1] - self.mousePositions[0][1]))
+         self.mouseRel = ((self.mousePositions[1][0] - self.mousePositions[0][0])*self.mainWindow.NavCanvas.scale,
+                          -(self.mousePositions[1][1] - self.mousePositions[0][1])*self.mainWindow.NavCanvas.scale)
          self.mousePositions.popleft()
 
       # Move all the selected rects
@@ -349,7 +352,6 @@ class NavigatorController:
       for rectNum in self.rects:
          for rect in self.rects[rectNum].children:
             # if rect in self.rects:
-            #    print 'True'
             self.drawArrows(self.rects[rectNum].rect, self.rects[rect].rect)
 
 
