@@ -1,8 +1,7 @@
 import wx
-import pygame
+import pygam
 
 
-rectDict = {}
 colors = {
    'BLACK' : wx.Colour(0, 0, 0),
    'BLUE' : wx.Colour(100, 223, 237),
@@ -90,3 +89,15 @@ class NavRect:
       self._children = []
 
       # TODO: Need to query EFS for list of parents and children
+
+
+class RectDict:
+   _rectDict = {}
+
+   @property
+   def rectDict(self):
+      return self._rectDict
+
+   @rectDict.setter
+   def rectDict(self, value):
+      self._rectDict = value
