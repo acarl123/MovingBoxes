@@ -352,11 +352,9 @@ class NavigatorController:
       self.allArrows = []
       for rectNum in self.rects:
          for rect in self.rects[rectNum].children:
-            # if rect in self.rects:
-            #    print 'True'
             self.drawArrows(self.rects[rectNum].rect, self.rects[rect].rect)
 
    def draw(self):
-      # self.redrawArrows()
+      self.redrawArrows()
       self.canvas.Draw()
 
