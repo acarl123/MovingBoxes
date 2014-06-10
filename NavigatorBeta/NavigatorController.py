@@ -41,9 +41,10 @@ class NavigatorController:
       self.RBRect = None
       self.StartPointWorld = None
       self.Tol = 5
-      self.enable()
+      self.allArrows = []
 
       # @TODO: Remove this in the future, but for now populate the screen for prototyping
+      self.enable()
       self.populateScreen()
 
    #--------------------------------------------------------------------------------------#
@@ -52,7 +53,7 @@ class NavigatorController:
    def populateScreen(self):
       randnum = random
       randnum.seed()
-      for i in xrange(2):
+      for i in xrange(5):
          xy = (randnum.randint(0, 800), randnum.randint(0, 600))
          # rect = self.canvas.AddRectangle(self.canvas.PixelToWorld(xy), (80, 35), LineWidth=0, FillColor=NavigatorModel.colors['BLUE'])
          rect = NavRect(str(len(self.rects)), self.canvas, 'Number %s' % i, xy, (80, 35), 0, NavigatorModel.colors['BLUE'])
@@ -62,13 +63,11 @@ class NavigatorController:
          self.rects.append(rect)
          rect.rect.PutInBackground()
          rect.rect.Text.PutInBackground()
-
-      # Draw an arrow between two random rectangles
-      xy1 = self.rects[0].rect.BoundingBox.Right, self.rects[0].rect.BoundingBox.Center[1]
-      xy2 = self.rects[1].rect.BoundingBox.Left, self.rects[1].rect.BoundingBox.Center[1]
-      self.canvas.AddArrowLine((xy1, xy2), LineWidth =2, LineColor=NavigatorModel.colors['BLACK'], ArrowHeadSize=12)
-
-
+         if i>=1:
+            # Draw an arrow between two  rectangles
+            self.drawArrows(self.rects[str(i)].rect, self.rects[str(i-1)].rect)
+            self.rects[str(i)]._children.append(str(i-1))
+            self.rects[str(i-1)]._parents.append(str(i))
       self.canvas.Draw()
 
    def show(self):
@@ -208,7 +207,7 @@ class NavigatorController:
          self.Drawing = False
          if self.RBRect:
             WH = event.Coords - self.StartPointWorld
-            wx.CallAfter(self.onBandBoxDrawn, (self.StartPointWorld, WH))
+            wx.CallAfter(self.drawBandBox, (self.StartPointWorld, WH))
          self.RBRect = None
          self.StartPointWorld = None
 
@@ -317,7 +316,16 @@ class NavigatorController:
          # rect.PutInBackground()
          # rect.Text.PutInBackground()
 
-   def onBandBoxDrawn(self, rect):
+   #--------------------------------------------------------------------------------------#
+   # Drawing Methods
+   #--------------------------------------------------------------------------------------#
+   # @TODO: Add a 3rd parameter that decides where the arrows are drawn between the rects
+   def drawArrows(self, rect1, rect2):
+      xy1 = rect1.BoundingBox.Right, rect1.BoundingBox.Center[1]
+      xy2 = rect2.BoundingBox.Left, rect2.BoundingBox.Center[1]
+      self.canvas.AddArrowLine((xy1, xy2), LineWidth =2, LineColor=NavigatorModel.colors['BLACK'], ArrowHeadSize=12, InForeground=False)
+
+   def drawBandBox(self, rect):
       # Get the four corner coordinates of the RBRect
       x1, y1 = rect[0][0], rect[0][1]
       x2, y2 = rect[1][0]+x1, rect[1][1]+y1
