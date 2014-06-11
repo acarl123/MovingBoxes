@@ -64,11 +64,7 @@ class NavigatorController:
          rect.rect.PutInBackground()
          rect.rect.Text.PutInBackground()
          self.rects[rect.rect.Name].revisions = ['1.0', '1.1', '1.2'] #@TODO: _revisions doesn't populate
-         # if i>=1:
-         #    # Draw an arrow between two rectangles
-         #    self.drawArrows(self.rects[str(i)].rect, self.rects[str(i-1)].rect)
-         #    self.rects[str(i)].children.append(str(i-1))
-         #    self.rects[str(i-1)].parents.append(str(i))
+      self.rects[rect.rect.Name].children = ['1', '2', '3', '4', '5']
       self.canvas.Draw()
 
    def show(self):
@@ -167,7 +163,7 @@ class NavigatorController:
       self.StartPointWorld = event.Coords
 
       if not self.ctrl_down:
-         for rectNum in xrange(len(self.rects)):
+         for rectNum in self.rects:
             self.rects[rectNum].rect.SetLineColor(NavigatorModel.colors['BLACK'])
             # TODO: Make _revShown a property within NavigatorModel
             if self.rects[rectNum]._revShown:
@@ -207,16 +203,9 @@ class NavigatorController:
       if event.Dragging() and not self.ctrl_down:
          if self.selectedRects:
             for rectNum in self.selectedRects:
-               if self.rects[rectNum].rect not in self.canvas._ForeDrawList:
-                  self.rects[rectNum].rect.PutInForeground() # Moving rects go in foreground
-                  self.rects[rectNum].rect.Text.PutInForeground()
-               self.rects[rectNum].rect.Move(self.mouseRel)
-               self.rects[rectNum].rect.Text.Move(self.mouseRel)
+               self.moveRect(self.rects[rectNum].rect, self.mouseRel)
                for revisionRect in self.rects[rectNum]._revisionRects:
-                  revisionRect.PutInForeground()
-                  revisionRect.Text.PutInForeground()
-                  revisionRect.Move(self.mouseRel)
-                  revisionRect.Text.Move(self.mouseRel)
+                  self.moveRect(revisionRect, self.mouseRel)
                self.redrawArrows()
             self.canvas.Draw(False)
          else:
@@ -242,7 +231,13 @@ class NavigatorController:
    # ContextMenu with Single Object Selected Bindings
    #--------------------------------------------------------------------------------------#
    def onExpand(self, event):
-      print 'Expand'
+      print 'Expanding Children'
+      rectNum = self.selectedRects[0]
+      self.rects[rectNum]._childrenShown=True
+      for rect in self.rects[rectNum].children:
+            self.drawArrows(self.rects[rectNum].rect, self.rects[rect].rect)
+      self.draw()
+
 
    def onAttributes(self, event):
       print 'Show Attributes'
@@ -262,16 +257,10 @@ class NavigatorController:
             ypos2 = self.rects[rectNum].rect.BoundingBox.Top
             differencex = xpos1-xpos2+index
             differencey = ypos1-ypos2
-            self.rects[rectNum].rect.PutInForeground() # Moving rects go in foreground
-            self.rects[rectNum].rect.Text.PutInForeground()
-            self.rects[rectNum].rect.Move((differencex, differencey))
-            self.rects[rectNum].rect.Text.Move((differencex, differencey))
+            self.moveRect(self.rects[rectNum].rect, (differencex, differencey))
             if self.rects[rectNum]._revShown:
                for revisionRect in self.rects[rectNum]._revisionRects:
-                  revisionRect.PutInForeground() # Moving rects go in foreground
-                  revisionRect.Text.PutInForeground()
-                  revisionRect.Move((differencex, differencey))
-                  revisionRect.Text.Move((differencex, differencey))
+                  self.moveRect(revisionRect, (differencex, differencey))
                   index += revisionRect.BoundingBox.Width
             index += self.rects[rectNum].rect.BoundingBox.Width +5
          self.draw()
@@ -287,15 +276,9 @@ class NavigatorController:
             ypos2 = self.rects[rectNum].rect.BoundingBox.Top
             differencex = xpos1-xpos2
             differencey = ypos1-ypos2+index
-            self.rects[rectNum].rect.PutInForeground() # Moving rects go in foreground
-            self.rects[rectNum].rect.Text.PutInForeground()
-            self.rects[rectNum].rect.Move((differencex, differencey))
-            self.rects[rectNum].rect.Text.Move((differencex, differencey))
+            self.moveRect(self.rects[rectNum].rect, (differencex, differencey))
             for revisionRect in self.rects[rectNum]._revisionRects:
-               revisionRect.PutInForeground() # Moving rects go in foreground
-               revisionRect.Text.PutInForeground()
-               revisionRect.Move((differencex, differencey))
-               revisionRect.Text.Move((differencex, differencey))
+               self.moveRect(revisionRect, (differencex, differencey))
             index -= self.rects[rectNum].rect.BoundingBox.Height + 10
          self.draw()
 
@@ -385,17 +368,22 @@ class NavigatorController:
                   revisionRect.SetLineColor(NavigatorModel.colors['WHITE'])
       self.canvas.Draw()
 
+   def moveRect(self, rect, (x,y)):
+      rect.PutInForeground()
+      rect.Text.PutInForeground()
+      rect.Move((x,y))
+      rect.Text.Move((x,y))
+
    # @TODO: Move this to our expand children
    def redrawArrows(self):
       # print 'Drawing arrows'
-      self.canvas.RemoveObjects((self.allArrows))
+      self.canvas.RemoveObjects(self.allArrows)
       self.arrowCount = 0
       self.allArrows = []
       for rectNum in self.rects:
-         for rect in self.rects[rectNum].children:
-            # if rect in self.rects:
-            #    print 'True'
-            self.drawArrows(self.rects[rectNum].rect, self.rects[rect].rect)
+         if self.rects[rectNum]._childrenShown:
+            for rect in self.rects[rectNum].children:
+               self.drawArrows(self.rects[rectNum].rect, self.rects[rect].rect)
 
 
 
