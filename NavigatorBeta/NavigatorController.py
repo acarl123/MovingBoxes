@@ -299,7 +299,7 @@ class NavigatorController:
    #--------------------------------------------------------------------------------------#
    def onRectLeftClick(self, object, event):
       if self.ctrl_down:
-         if object.Name not in self.selectedRects:
+         if str(object.Name) not in self.selectedRects:
             self.selectedRects.append(object.Name)
       else:
          if object.Name not in self.selectedRects:
@@ -359,7 +359,7 @@ class NavigatorController:
       for rectNum in self.rects:
          if x1 <= self.rects[rectNum].rect.BoundingBox.Center[0] <= x2 and \
             y1 <= self.rects[rectNum].rect.BoundingBox.Center[1] <= y2:
-            self.selectedRects.append(rectNum)
+            self.selectedRects.append(rectNum.name)
             self.rects[rectNum].rect.PutInForeground() # clicked rect pops to top
             self.rects[rectNum].rect.Text.PutInForeground()
             self.rects[rectNum].rect.SetLineColor(NavigatorModel.colors['WHITE'])
