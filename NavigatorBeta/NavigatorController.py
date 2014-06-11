@@ -1,7 +1,7 @@
 from collections import deque
-from NavigatorView import NavigatorFrame
-from wx.lib.floatcanvas import NavCanvas, FloatCanvas, Resources
 from NavigatorModel import NavRect, RectDict
+from NavigatorView import NavigatorFrame
+from wx.lib.floatcanvas import FloatCanvas
 import NavigatorModel
 import os
 import random
@@ -36,6 +36,7 @@ class NavigatorController:
       self.mousePositions = deque([])
       self.mouseRel = 0, 0
       self.ctrl_down = False
+      # Initial bounding box member variables
       self.Drawing = False
       self.RBRect = None
       self.StartPointWorld = None
@@ -54,7 +55,7 @@ class NavigatorController:
    def populateScreen(self):
       randnum = random
       randnum.seed()
-      for i in xrange(3):
+      for i in xrange(10):
          xy = (randnum.randint(0, 800), randnum.randint(0, 600))
          rect = NavRect(str(len(self.rects)), self.canvas, 'Number %s' % i, xy, (80, 35), 0, NavigatorModel.colors['BLUE'])
          rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
@@ -62,7 +63,7 @@ class NavigatorController:
          self.rects.append(rect)
          rect.rect.PutInBackground()
          rect.rect.Text.PutInBackground()
-         self.rects[rect.rect.Name].revisions = ('1.0', '1.1', '1.2')
+         self.rects[rect.rect.Name].revisions = ['1.0', '1.1', '1.2'] #@TODO: _revisions doesn't populate
          if i>=1:
             # Draw an arrow between two rectangles
             self.drawArrows(self.rects[str(i)].rect, self.rects[str(i-1)].rect)
@@ -111,6 +112,7 @@ class NavigatorController:
       self.canvas.Zoom(scrollFactor, event.GetPositionTuple(), 'pixel')
 
    def onContextMenu(self, event):
+      # TODO: make this cleaner
       self.popupID1 = wx.NewId()
       self.popupID2 = wx.NewId()
       self.popupID3 = wx.NewId()
@@ -161,8 +163,9 @@ class NavigatorController:
       if not self.ctrl_down:
          for rectNum in xrange(len(self.rects)):
             self.rects[rectNum].rect.SetLineColor(NavigatorModel.colors['BLACK'])
+            # TODO: Make _revShown a property within NavigatorModel
             if self.rects[rectNum]._revShown:
-               for revision in self.rects[self.rects[rectNum].rect.Name]._revisionRects:
+               for revision in self.rects[rectNum]._revisionRects:
                   revision.SetLineColor(NavigatorModel.colors['BLACK'])
          self.selectedRects = []
 
@@ -176,9 +179,9 @@ class NavigatorController:
          cornerx, cornery = event.GetPosition()
          w, h = (cornerx - x, cornery - y)
          if abs(w) > self.Tol and abs(h) > self.Tol:
-            # draw the RB box
+            # draw the RB box TODO: if the mouse leaves the screen then stop drawing
             dc = wx.ClientDC(self.canvas)
-            dc.SetPen(wx.Pen('WHITE', 2, wx.SHORT_DASH))
+            dc.SetPen(wx.Pen(NavigatorModel.colors['WHITE'], 2, wx.SHORT_DASH))
             dc.SetBrush(wx.TRANSPARENT_BRUSH)
             dc.SetLogicalFunction(wx.XOR)
             if self.RBRect:
@@ -204,6 +207,8 @@ class NavigatorController:
                self.rects[rectNum].rect.Move(self.mouseRel)
                self.rects[rectNum].rect.Text.Move(self.mouseRel)
                for revisionRect in self.rects[rectNum]._revisionRects:
+                  revisionRect.PutInForeground()
+                  revisionRect.Text.PutInForeground()
                   revisionRect.Move(self.mouseRel)
                   revisionRect.Text.Move(self.mouseRel)
                self.redrawArrows()
@@ -212,7 +217,7 @@ class NavigatorController:
             pass
 
    def onLUp(self, event):
-      # Stop drawing
+      # Stop drawing RBbox
       if self.Drawing:
          self.Drawing = False
          if self.RBRect:
@@ -350,15 +355,15 @@ class NavigatorController:
       for rectNum in self.rects:
          if x1 <= self.rects[rectNum].rect.BoundingBox.Center[0] <= x2 and \
             y1 <= self.rects[rectNum].rect.BoundingBox.Center[1] <= y2:
-            self.selectedRects.append(self.rects[rectNum].rect.Name)
+            self.selectedRects.append(rectNum)
             self.rects[rectNum].rect.PutInForeground() # clicked rect pops to top
             self.rects[rectNum].rect.Text.PutInForeground()
             self.rects[rectNum].rect.SetLineColor(NavigatorModel.colors['WHITE'])
             if self.rects[rectNum]._revShown:
-               for revision in self.rects[rectNum]._revisionRects:
-                  revision.PutInForeground()
-                  revision.Text.PutInForeground()
-                  revision.SetLineColor(NavigatorModel.colors['WHITE'])
+               for revisionRect in self.rects[rectNum]._revisionRects:
+                  revisionRect.PutInForeground()
+                  revisionRect.Text.PutInForeground()
+                  revisionRect.SetLineColor(NavigatorModel.colors['WHITE'])
       self.canvas.Draw()
 
    # @TODO: Move this to our expand children
