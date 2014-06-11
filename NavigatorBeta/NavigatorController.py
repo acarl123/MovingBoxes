@@ -354,6 +354,8 @@ class NavigatorController:
             self.rects[rectNum].rect.SetLineColor(NavigatorModel.colors['WHITE'])
             if self.rects[rectNum]._revShown:
                for revision in self.rects[rectNum]._revisionRects:
+                  revision.PutInForeground()
+                  revision.Text.PutInForeground()
                   revision.SetLineColor(NavigatorModel.colors['WHITE'])
       self.canvas.Draw()
 
