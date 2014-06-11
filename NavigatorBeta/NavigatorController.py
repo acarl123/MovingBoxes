@@ -54,7 +54,7 @@ class NavigatorController:
    def populateScreen(self):
       randnum = random
       randnum.seed()
-      for i in xrange(2):
+      for i in xrange(3):
          xy = (randnum.randint(0, 800), randnum.randint(0, 600))
          rect = NavRect(str(len(self.rects)), self.canvas, 'Number %s' % i, xy, (80, 35), 0, NavigatorModel.colors['BLUE'])
          rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
@@ -240,6 +240,7 @@ class NavigatorController:
    # ContextMenu with Multiple Objects Selected Bindings
    #--------------------------------------------------------------------------------------#
    def onArrangeHorizontally(self, event):
+      # TODO: account for width of revisions
       if self.selectedRects:
          firstRect = self.selectedRects[0]
          xpos1 = self.rects[firstRect].rect.BoundingBox.Left
@@ -275,6 +276,7 @@ class NavigatorController:
          self.draw()
 
    def onDelete(self, event):
+      #TODO: remove revisions
       for rectNum in self.selectedRects:
          self.rects[rectNum].rect.UnBindAll()
          self.canvas.RemoveObjects((self.rects[rectNum].rect, self.rects[rectNum].rect.Text))
@@ -345,7 +347,7 @@ class NavigatorController:
          x1, x2 = x2, x1
       if y2 <= y1:
          y1, y2 = y2, y1
-      for rectNum in xrange(len(self.rects)):
+      for rectNum in self.rects:
          if x1 <= self.rects[rectNum].rect.BoundingBox.Center[0] <= x2 and \
             y1 <= self.rects[rectNum].rect.BoundingBox.Center[1] <= y2:
             self.selectedRects.append(self.rects[rectNum].rect.Name)
