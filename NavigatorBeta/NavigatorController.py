@@ -64,11 +64,11 @@ class NavigatorController:
          rect.rect.PutInBackground()
          rect.rect.Text.PutInBackground()
          self.rects[rect.rect.Name].revisions = ['1.0', '1.1', '1.2'] #@TODO: _revisions doesn't populate
-         if i>=1:
-            # Draw an arrow between two rectangles
-            self.drawArrows(self.rects[str(i)].rect, self.rects[str(i-1)].rect)
-            self.rects[str(i)].children.append(str(i-1))
-            self.rects[str(i-1)].parents.append(str(i))
+         # if i>=1:
+         #    # Draw an arrow between two rectangles
+         #    self.drawArrows(self.rects[str(i)].rect, self.rects[str(i-1)].rect)
+         #    self.rects[str(i)].children.append(str(i-1))
+         #    self.rects[str(i-1)].parents.append(str(i))
       self.canvas.Draw()
 
    def show(self):
@@ -256,9 +256,18 @@ class NavigatorController:
             ypos2 = self.rects[rectNum].rect.BoundingBox.Top
             differencex = xpos1-xpos2+index
             differencey = ypos1-ypos2
+            self.rects[rectNum].rect.PutInForeground() # Moving rects go in foreground
+            self.rects[rectNum].rect.Text.PutInForeground()
             self.rects[rectNum].rect.Move((differencex, differencey))
             self.rects[rectNum].rect.Text.Move((differencex, differencey))
-            index += self.rects[rectNum].rect.BoundingBox.Width + 5
+            if self.rects[rectNum]._revShown:
+               for revisionRect in self.rects[rectNum]._revisionRects:
+                  revisionRect.PutInForeground() # Moving rects go in foreground
+                  revisionRect.Text.PutInForeground()
+                  revisionRect.Move((differencex, differencey))
+                  revisionRect.Text.Move((differencex, differencey))
+                  index += revisionRect.BoundingBox.Width
+            index += self.rects[rectNum].rect.BoundingBox.Width +5
          self.draw()
 
    def onArrangeVertically(self, event):
@@ -272,11 +281,15 @@ class NavigatorController:
             ypos2 = self.rects[rectNum].rect.BoundingBox.Top
             differencex = xpos1-xpos2
             differencey = ypos1-ypos2+index
+            self.rects[rectNum].rect.PutInForeground() # Moving rects go in foreground
+            self.rects[rectNum].rect.Text.PutInForeground()
             self.rects[rectNum].rect.Move((differencex, differencey))
             self.rects[rectNum].rect.Text.Move((differencex, differencey))
-            # for revisionRect in self.rects[rectNum]._revisionRects:
-            #    revisionRect.Move((differencex, differencey))
-            #    revisionRect.Text.Move((differencex, differencey))
+            for revisionRect in self.rects[rectNum]._revisionRects:
+               revisionRect.PutInForeground() # Moving rects go in foreground
+               revisionRect.Text.PutInForeground()
+               revisionRect.Move((differencex, differencey))
+               revisionRect.Text.Move((differencex, differencey))
             index -= self.rects[rectNum].rect.BoundingBox.Height + 10
          self.draw()
 
