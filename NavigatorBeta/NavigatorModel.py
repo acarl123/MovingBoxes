@@ -98,6 +98,7 @@ class NavRect:
       self._children = []
 
       self._revShown = False
+      self._childrenShown = False
 
       self.rect.Name = self._name
 
