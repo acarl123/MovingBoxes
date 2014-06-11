@@ -112,19 +112,19 @@ class NavigatorController:
       self.canvas.Zoom(scrollFactor, event.GetPositionTuple(), 'pixel')
 
    def onContextMenu(self, event):
-      # TODO: make this cleaner
-      self.popupID1 = wx.NewId()
-      self.popupID2 = wx.NewId()
-      self.popupID3 = wx.NewId()
-      self.popupID4 = wx.NewId()
       if len(self.selectedRects) == 0:
          #@TODO: add context menu for no rects selected
          return
       elif len(self.selectedRects) == 1:
-         self.canvas.Bind(wx.EVT_MENU, self.onExpand, id=self.popupID1)
-         self.canvas.Bind(wx.EVT_MENU, self.onAttributes, id=self.popupID2)
-         self.canvas.Bind(wx.EVT_MENU, self.onDelete, id=self.popupID3)
-         self.canvas.Bind(wx.EVT_MENU, self.onLock, id=self.popupID4)
+         if not hasattr(self, 'popupID1'):
+            self.popupID1 = wx.NewId()
+            self.popupID2 = wx.NewId()
+            self.popupID3 = wx.NewId()
+            self.popupID4 = wx.NewId()
+            self.canvas.Bind(wx.EVT_MENU, self.onExpand, id=self.popupID1)
+            self.canvas.Bind(wx.EVT_MENU, self.onAttributes, id=self.popupID2)
+            self.canvas.Bind(wx.EVT_MENU, self.onDelete, id=self.popupID3)
+            self.canvas.Bind(wx.EVT_MENU, self.onLock, id=self.popupID4)
          menu = wx.Menu()
          menu.Append(self.popupID1, 'Expand')
          menu.Append(self.popupID2, 'Attributes/Properties')
@@ -133,16 +133,22 @@ class NavigatorController:
          self.canvas.PopupMenu(menu)
          menu.Destroy()
          return
-      elif len(self.selectedRects) > 1:
-         self.canvas.Bind(wx.EVT_MENU, self.onArrangeHorizontally, id=self.popupID1)
-         self.canvas.Bind(wx.EVT_MENU, self.onArrangeVertically, id=self.popupID2)
-         self.canvas.Bind(wx.EVT_MENU, self.onDelete, id=self.popupID3)
-         self.canvas.Bind(wx.EVT_MENU, self.onLock, id=self.popupID4)
+
+      if len(self.selectedRects) > 1:
+         if not hasattr(self, 'popupID5'):
+            self.popupID5 = wx.NewId()
+            self.popupID6 = wx.NewId()
+            self.popupID7 = wx.NewId()
+            self.popupID8 = wx.NewId()
+            self.canvas.Bind(wx.EVT_MENU, self.onArrangeHorizontally, id=self.popupID5)
+            self.canvas.Bind(wx.EVT_MENU, self.onArrangeVertically, id=self.popupID6)
+            self.canvas.Bind(wx.EVT_MENU, self.onDelete, id=self.popupID7)
+            self.canvas.Bind(wx.EVT_MENU, self.onLock, id=self.popupID8)
          menu = wx.Menu()
-         menu.Append(self.popupID1, 'Arrange Horizontally')
-         menu.Append(self.popupID2, 'Arrange Vertically')
-         menu.Append(self.popupID3, 'Delete Selected')
-         menu.Append(self.popupID4, 'Lock')
+         menu.Append(self.popupID5, 'Arrange Horizontally')
+         menu.Append(self.popupID6, 'Arrange Vertically')
+         menu.Append(self.popupID7, 'Delete Selected')
+         menu.Append(self.popupID8, 'Lock')
          self.canvas.PopupMenu(menu)
          menu.Destroy()
 
