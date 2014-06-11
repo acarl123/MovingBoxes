@@ -62,6 +62,7 @@ class NavigatorController:
          self.rects.append(rect)
          rect.rect.PutInBackground()
          rect.rect.Text.PutInBackground()
+         self.rects[rect.rect.Name].revisions = ('1.0', '1.1', '1.2')
          if i>=1:
             # Draw an arrow between two rectangles
             self.drawArrows(self.rects[str(i)].rect, self.rects[str(i-1)].rect)
@@ -161,7 +162,7 @@ class NavigatorController:
          for rectNum in xrange(len(self.rects)):
             self.rects[rectNum].rect.SetLineColor(NavigatorModel.colors['BLACK'])
             if self.rects[rectNum]._revShown:
-               for revision in self.rects[self.rects[rectNum].rect.Name].revisions:
+               for revision in self.rects[self.rects[rectNum].rect.Name]._revisionRects:
                   revision.SetLineColor(NavigatorModel.colors['BLACK'])
          self.selectedRects = []
 
@@ -202,9 +203,9 @@ class NavigatorController:
                   self.rects[rectNum].rect.Text.PutInForeground()
                self.rects[rectNum].rect.Move(self.mouseRel)
                self.rects[rectNum].rect.Text.Move(self.mouseRel)
-               for revision in self.rects[rectNum].revisions:
-                  revision.Move(self.mouseRel)
-                  revision.Text.Move(self.mouseRel)
+               for revisionRect in self.rects[rectNum]._revisionRects:
+                  revisionRect.Move(self.mouseRel)
+                  revisionRect.Text.Move(self.mouseRel)
                self.redrawArrows()
             self.canvas.Draw(False)
          else:
@@ -267,6 +268,9 @@ class NavigatorController:
             differencey = ypos1-ypos2+index
             self.rects[rectNum].rect.Move((differencex, differencey))
             self.rects[rectNum].rect.Text.Move((differencex, differencey))
+            # for revisionRect in self.rects[rectNum]._revisionRects:
+            #    revisionRect.Move((differencex, differencey))
+            #    revisionRect.Text.Move((differencex, differencey))
             index -= self.rects[rectNum].rect.BoundingBox.Height + 10
          self.draw()
 
@@ -292,8 +296,8 @@ class NavigatorController:
          if object.Name not in self.selectedRects:
             for rectNum in self.selectedRects:
                self.rects[rectNum].rect.SetLineColor(NavigatorModel.colors['BLACK'])
-               for revision in self.rects[rectNum].revisions:
-                  revision.SetLineColor(NavigatorModel.colors['BLACK'])
+               for revisionRect in self.rects[rectNum]._revisionRects:
+                  revisionRect.SetLineColor(NavigatorModel.colors['BLACK'])
 
             self.selectedRects = []
             self.selectedRects.append(object.Name)
@@ -301,26 +305,18 @@ class NavigatorController:
       object.Text.PutInForeground()
       object.SetLineColor(NavigatorModel.colors['WHITE'])
       if self.rects[object.Name]._revShown:
-         for revision in self.rects[object.Name].revisions:
-            revision.SetLineColor(NavigatorModel.colors['WHITE'])
+         for revisionRect in self.rects[object.Name]._revisionRects:
+            revisionRect.SetLineColor(NavigatorModel.colors['WHITE'])
       self.canvas.Draw()
 
    def onRectLeftDClick(self, object, event):
-      # # Get the right middle position of the rectangle
-      # xy = object.BoundingBox.Right, object.BoundingBox.Center[1] - object.BoundingBox.Height/4
-      # for revision in self.rects[object.Name]:
-
-
-
-      randnum = random
-      randnum.seed()
       # Get the right middle position of the rectangle
       xy = object.BoundingBox.Right, object.BoundingBox.Center[1] - object.BoundingBox.Height/4
-      for revision in xrange(randnum.randint(1, 5)):
+      for revision in self.rects[object.Name].revisions:
          rect = self.canvas.AddRectangle(xy, (40, 17.5), LineWidth=0, FillColor=NavigatorModel.colors['BLUE'], LineColor='WHITE')
          rect.Name = '%s' % revision
-         rect.Text = self.canvas.AddScaledText('1.%s' % revision, (xy[0]+20, xy[1]+8.75), 7, Position = "cc")
-         self.rects[object.Name].revisions.append(rect)
+         rect.Text = self.canvas.AddScaledText('%s' % revision, (xy[0]+20, xy[1]+8.75), 7, Position = "cc")
+         self.rects[object.Name]._revisionRects.append(rect)
          xy = xy[0] + 40, xy[1]
          self.rects[object.Name]._revShown=True
       self.canvas.Draw()
@@ -357,7 +353,7 @@ class NavigatorController:
             self.rects[rectNum].rect.Text.PutInForeground()
             self.rects[rectNum].rect.SetLineColor(NavigatorModel.colors['WHITE'])
             if self.rects[rectNum]._revShown:
-               for revision in self.rects[rectNum].revisions:
+               for revision in self.rects[rectNum]._revisionRects:
                   revision.SetLineColor(NavigatorModel.colors['WHITE'])
       self.canvas.Draw()
 

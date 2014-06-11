@@ -93,6 +93,7 @@ class NavRect:
       self._name = name
       self._bo = None
       self._revisions = []
+      self._revisionRects = []
       self._parents = []
       self._children = []
 
@@ -103,7 +104,7 @@ class NavRect:
       # TODO: Need to query EFS for list of parents and children
 
 
-class RectDict:
+class RectDict(object):
    @property
    def rectDict(self):
       return self._rectDict
@@ -136,6 +137,14 @@ class RectDict:
             print 'Key Search for type %s not supported' % item
       except KeyError:
          print item
+
+   def __setitem__(self, key, value):
+      if isinstance(key, (int, long)):
+            myKey = key
+      elif isinstance(key, basestring):
+            myKey = int(key)
+      self._rectDict[myKey] = value
+
 
    def __iter__(self):
       return self._rectDict.itervalues()
