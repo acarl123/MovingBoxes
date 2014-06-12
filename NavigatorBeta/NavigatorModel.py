@@ -92,7 +92,7 @@ class NavRect:
       self.rect.Text = self.text
       self._name = name
       self._bo = None
-      self._revisions = []
+      self._revisions = {}
       self._revisionRects = []
       self._parents = []
       self._children = []
