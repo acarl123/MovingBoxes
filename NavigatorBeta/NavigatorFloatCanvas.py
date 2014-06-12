@@ -1,10 +1,10 @@
 import wx
 from wx.lib.floatcanvas import FloatCanvas, NavCanvas, Resources, GUIMode
-import numpy
+import numpy as N
 
 
 def YDownProjection(CenterPoint):
-   return numpy.array((1, -1))
+   return N.array((1, -1))
 
 
 class NavigatorFloatCanvas( NavCanvas.NavCanvas ):
@@ -42,3 +42,28 @@ class NavigatorFloatCanvas( NavCanvas.NavCanvas ):
          self.panning = True
       else:
          self.panning = False
+
+
+class NavGuiMove( GUIMode.GUIMove ):
+   def __init__(self, event, canvas=None):
+      super(NavGuiMove, self).__init__(canvas)
+      self.Canvas = canvas
+      self.event = event
+
+
+   def OnMove(self, event):
+      self.Canvas._RaiseMouseEvent(event, FloatCanvas.EVT_FC_MOTION)
+      if event.Dragging() and event.MiddleIsDown() and not self.StartMove is None:
+         self.EndMove = N.array(event.GetPosition())
+         self.MoveImage(event)
+         DiffMove = self.MidMove - self.EndMove
+         self.Canvas.MoveImage(DiffMove, 'Pixel', ReDraw=False)  # reset the canvas without re-drawing
+         self.MidMove = self.EndMove
+         self.MoveTimer.Start(30, oneShot=True)
+
+   def OnMiddleUp(self, event):
+      print 'p'
+
+   def __del__(self):
+      self.OnLeftUp(self.event)
+      self.MoveTimer.Stop()

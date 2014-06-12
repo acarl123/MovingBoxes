@@ -1,7 +1,9 @@
 from collections import deque
+import numpy
 from NavigatorModel import NavRect, RectDict
 from NavigatorView import NavigatorFrame
-from wx.lib.floatcanvas import FloatCanvas
+from wx.lib.floatcanvas import FloatCanvas, GUIMode
+from NavigatorFloatCanvas import NavGuiMove
 import NavigatorModel
 import os
 import random
@@ -29,6 +31,8 @@ class NavigatorController:
       self.canvas.Bind(wx.EVT_CONTEXT_MENU, self.onContextMenu)
       self.canvas.Bind(wx.EVT_KEY_DOWN, self.onKeyEvents)
       self.canvas.Bind(wx.EVT_KEY_UP, self.onKeyEvents)
+      self.canvas.Bind(wx.EVT_MIDDLE_DOWN, self.onMiddleDn)
+      self.canvas.Bind(wx.EVT_MIDDLE_UP, self.onMiddleUp)
 
       # Initialize member variables
       self.rects = RectDict()
@@ -459,5 +463,15 @@ class NavigatorController:
          #    for rect in self.rects[rectNum].children:
          #       self.drawArrows(self.rects[rectNum].rect, self.rects[rect].rect)
 
+   def onMiddleDn(self, event):
+      mode = NavGuiMove(event, self.canvas)
+      self.canvas.SetMode(mode)
 
+      mode.Canvas.SetCursor(mode.GrabCursor)
+      mode.StartMove = numpy.array(event.GetPosition())
+      mode.MidMove = mode.StartMove
+      mode.PrevMoveXY = (0, 0)
 
+   def onMiddleUp(self, event):
+      mode = GUIMode.GUIMouse(self.canvas)
+      self.canvas.SetMode(mode)
