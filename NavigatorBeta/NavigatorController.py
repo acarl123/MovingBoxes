@@ -53,19 +53,19 @@ class NavigatorController:
    # Initialization (not bindings)
    #--------------------------------------------------------------------------------------#
    def populateScreen(self):
-      randnum = random
-      randnum.seed()
-      for i in xrange(10):
-         xy = (randnum.randint(0, 800), randnum.randint(0, 600))
-         rect = NavRect(str(len(self.rects)), self.canvas, 'Number %s' % i, xy, (80, 35), 0, NavigatorModel.colors['BLUE'])
-         rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
-         rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
-         self.rects.append(rect)
-         rect.rect.PutInBackground()
-         rect.rect.Text.PutInBackground()
-         self.rects[rect.rect.Name].revisions = ['1.0', '1.1', '1.2'] #@TODO: _revisions doesn't populate
-      self.rects[rect.rect.Name].children = ['1', '2', '3', '4', '5']
-      self.canvas.Draw()
+      xy = (300, 200)
+      rect = NavRect('1', self.canvas, 'Number 1', xy, (80, 35), 0, NavigatorModel.colors['BLUE'])
+      rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
+      rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
+      self.rects.append(rect)
+      rect.rect.PutInBackground()
+      rect.rect.Text.PutInBackground()
+
+      # Hardcode in the children, parents, revisions
+      self.fake_revisions = ['1.0', '1.1']
+      self.rects[rect.rect.Name].children = ['2', '3', '4', '5']
+      self.rects[rect.rect.Name].parents = ['6', '7', '8']
+      self.rects[rect.rect.Name].revisions = {'1.0': self.fake_revisions, '1.1': self.fake_revisions, '1.2': self.fake_revisions} #@TODO: _revisions doesn't populate
 
    def show(self):
       self.mainWindow.Show()
@@ -117,7 +117,7 @@ class NavigatorController:
             self.popupID2 = wx.NewId()
             self.popupID3 = wx.NewId()
             self.popupID4 = wx.NewId()
-            self.canvas.Bind(wx.EVT_MENU, self.onExpand, id=self.popupID1)
+            self.canvas.Bind(wx.EVT_MENU, self.onExpandChildren, id=self.popupID1)
             self.canvas.Bind(wx.EVT_MENU, self.onAttributes, id=self.popupID2)
             self.canvas.Bind(wx.EVT_MENU, self.onDelete, id=self.popupID3)
             self.canvas.Bind(wx.EVT_MENU, self.onLock, id=self.popupID4)
@@ -225,18 +225,33 @@ class NavigatorController:
       for rectObj in self.selectedRects:
          self.rects[rectObj].rect.PutInBackground()
          self.rects[rectObj].rect.Text.PutInBackground()
+         for revisionRect in self.rects[rectObj]._revisionRects:
+            revisionRect.PutInBackground()
+            revisionRect.Text.PutInBackground()
+      for arrow in self.allArrows:
+         arrow.PutInBackground
       self.canvas.Draw()
 
    #--------------------------------------------------------------------------------------#
    # ContextMenu with Single Object Selected Bindings
    #--------------------------------------------------------------------------------------#
-   def onExpand(self, event):
-      print 'Expanding Children'
+   def onExpandChildren(self, event):
       rectNum = self.selectedRects[0]
-      self.rects[rectNum]._childrenShown=True
-      for rect in self.rects[rectNum].children:
+      if not self.rects[rectNum]._childrenShown:
+         self.rects[rectNum]._childrenShown=True
+         xy = (440, 200)
+         index = xy[1]
+         for rect in self.rects[rectNum].children:
+            rect = NavRect(rect, self.canvas, 'Number ' + rect, xy, (80, 35), 0, NavigatorModel.colors['BLUE'])
+            rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
+            rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
+            self.rects.append(rect)
+            rect.rect.PutInBackground()
+            rect.rect.Text.PutInBackground()
             self.drawArrows(self.rects[rectNum].rect, self.rects[rect].rect)
-      self.draw()
+            index += 40
+            xy = (xy[0], index)
+         self.draw()
 
 
    def onAttributes(self, event):
@@ -284,12 +299,15 @@ class NavigatorController:
 
    def onDelete(self, event):
       #TODO: remove revisions
-      for rectNum in self.selectedRects:
-         self.rects[rectNum].rect.UnBindAll()
-         self.canvas.RemoveObjects((self.rects[rectNum].rect, self.rects[rectNum].rect.Text))
-         del self.rects[rectNum]
-      self.selectedRects=[]
-      self.draw()
+      print 'Delete'
+      # for rectNum in self.selectedRects:
+      #    self.rects[rectNum].rect.UnBindAll()
+      #    for revisionRect in self.rects[rectNum]._revisionRects:
+      #       self.canvas.RemoveObjects([revisionRect, revisionRect.Text])
+      #    self.canvas.RemoveObjects((self.rects[rectNum].rect, self.rects[rectNum].rect.Text))
+      #    del self.rects[rectNum]
+      # self.selectedRects=[]
+      # self.draw()
 
    def onLock(self, event):
       print 'On Lock'
@@ -321,16 +339,23 @@ class NavigatorController:
       self.canvas.Draw()
 
    def onRectLeftDClick(self, object, event):
-      # Get the right middle position of the rectangle
-      xy = object.BoundingBox.Right, object.BoundingBox.Center[1] - object.BoundingBox.Height/4
-      for revision in self.rects[object.Name].revisions:
-         rect = self.canvas.AddRectangle(xy, (40, 17.5), LineWidth=0, FillColor=NavigatorModel.colors['BLUE'], LineColor='WHITE')
-         rect.Name = '%s' % revision
-         rect.Text = self.canvas.AddScaledText('%s' % revision, (xy[0]+20, xy[1]+8.75), 7, Position = "cc")
-         self.rects[object.Name]._revisionRects.append(rect)
-         xy = xy[0] + 40, xy[1]
-         self.rects[object.Name]._revShown=True
-      self.canvas.Draw()
+      if self.rects[object.Name]._revShown: #collapse the revisions and remove them from the screen
+         self.rects[object.Name]._revShown = False
+         for revisionRect in self.rects[object.Name]._revisionRects:
+            self.canvas.RemoveObjects([revisionRect, revisionRect.Text])
+         self.rects[object.Name]._revisionRects = []
+      else:
+         # Get the right middle position of the rectangle
+         xy = object.BoundingBox.Right, object.BoundingBox.Center[1] - object.BoundingBox.Height/4
+         # Loop through the keys in a dict
+         for revision in self.rects[object.Name].revisions:
+            rect = self.canvas.AddRectangle(xy, (40, 17.5), LineWidth=0, FillColor=NavigatorModel.colors['BLUE'], LineColor='WHITE')
+            rect.Name = '%s' % revision
+            rect.Text = self.canvas.AddScaledText('%s' % revision, (xy[0]+20, xy[1]+8.75), 7, Position = "cc")
+            self.rects[object.Name]._revisionRects.append(rect)
+            xy = xy[0] + 40, xy[1]
+            self.rects[object.Name]._revShown=True
+      self.draw()
 
    #--------------------------------------------------------------------------------------#
    # Drawing Methods
@@ -339,12 +364,52 @@ class NavigatorController:
       self.redrawArrows()
       self.canvas.Draw()
 
-   # @TODO: Add a 3rd parameter that decides where the arrows are drawn between the rects
+   # @TODO: Optimize this code a lot
    def drawArrows(self, rect1, rect2):
-      xy1 = rect1.BoundingBox.Right, rect1.BoundingBox.Center[1]
-      xy2 = rect2.BoundingBox.Left, rect2.BoundingBox.Center[1]
+      # Get the smaller rect width and rect height
+      if rect1.BoundingBox.Width <= rect2.BoundingBox.Width:minWidth = rect1.BoundingBox.Width
+      else: minWidth = rect2.BoundingBox.Width
+      if rect1.BoundingBox.Height <= rect2.BoundingBox.Height:minHeight = rect1.BoundingBox.Height
+      else: minHeight = rect2.BoundingBox.Height
+      # Use the absolute width and height to determine the middle width and middle height
+      absoluteWidth = abs(rect1.BoundingBox.Center[0]-rect2.BoundingBox.Center[0])
+      absoluteHeight = abs(rect1.BoundingBox.Center[1]-rect2.BoundingBox.Center[1])
+
+      # Determining all cases where the arrows should be
+      if rect1.BoundingBox.Center[0] <= rect2.BoundingBox.Center[0]:
+         if rect1.BoundingBox.Center[1] >= rect2.BoundingBox.Center[1]: #x1<=x2 and y1>=y2
+            xy1 = rect1.BoundingBox.Right, rect1.BoundingBox.Bottom
+            xy2 = rect2.BoundingBox.Left, rect2.BoundingBox.Top
+            if absoluteHeight<=minHeight: #In the middle height of the rects
+               xy1=rect1.BoundingBox.Right, rect1.BoundingBox.Center[1]-absoluteHeight/3
+               xy2=rect2.BoundingBox.Left, rect2.BoundingBox.Center[1]+absoluteHeight/3
+         else: #x1<=x2 && y1<y2
+            xy1 = rect1.BoundingBox.Right, rect1.BoundingBox.Top
+            xy2 = rect2.BoundingBox.Left, rect2.BoundingBox.Bottom
+            if absoluteHeight<=minHeight: #In the middle height of the rects
+               xy1=rect1.BoundingBox.Right, rect1.BoundingBox.Center[1]+absoluteHeight/3
+               xy2=rect2.BoundingBox.Left, rect2.BoundingBox.Center[1]-absoluteHeight/3
+         if absoluteWidth<minWidth: # In the middle width of the rects
+            xy1 = rect1.BoundingBox.Center[0]+absoluteWidth/2, xy1[1]
+            xy2 = rect2.BoundingBox.Center[0]-absoluteWidth/2, xy2[1]
+      else:
+         if rect1.BoundingBox.Center[1] >= rect2.BoundingBox.Center[1]: #x1>x2 and y1>=y2
+            xy1 = rect1.BoundingBox.Left, rect1.BoundingBox.Bottom
+            xy2 = rect2.BoundingBox.Right, rect2.BoundingBox.Top
+            if absoluteHeight<=minHeight: #In the middle height of the rects
+               xy1=rect1.BoundingBox.Left, rect1.BoundingBox.Center[1]-absoluteHeight/3
+               xy2=rect2.BoundingBox.Right, rect2.BoundingBox.Center[1]+absoluteHeight/3
+         else:# x1>x2 and y1<y2
+            xy1 = rect1.BoundingBox.Left, rect1.BoundingBox.Top
+            xy2 = rect2.BoundingBox.Right, rect2.BoundingBox.Bottom
+            if absoluteHeight<=minHeight: #In the middle height of the rects
+               xy1=rect1.BoundingBox.Left, rect1.BoundingBox.Center[1]+absoluteHeight/3
+               xy2=rect2.BoundingBox.Right, rect2.BoundingBox.Center[1]-absoluteHeight/3
+         if absoluteWidth<minWidth: #In the middle width of the rects
+            xy1 = rect1.BoundingBox.Center[0]-absoluteWidth/2, xy1[1]
+            xy2 = rect2.BoundingBox.Center[0]+absoluteWidth/2, xy2[1]
       self.arrowCount += 1
-      arrow = self.canvas.AddArrowLine((xy1, xy2), LineWidth =2, LineColor=NavigatorModel.colors['BLACK'], ArrowHeadSize=12, InForeground=True)
+      arrow = self.canvas.AddArrowLine((xy1, xy2), LineWidth =1, LineColor=NavigatorModel.colors['BLACK'], ArrowHeadSize=10, InForeground=False)
       self.allArrows.append(arrow)
       
    def drawBandBox(self, rect):
@@ -378,14 +443,21 @@ class NavigatorController:
 
    # @TODO: Move this to our expand children
    def redrawArrows(self):
-      # print 'Drawing arrows'
       self.canvas.RemoveObjects(self.allArrows)
       self.arrowCount = 0
       self.allArrows = []
       for rectNum in self.rects:
-         if self.rects[rectNum]._childrenShown:
+         if not self.rects[rectNum]._revShown and self.rects[rectNum]._childrenShown:
             for rect in self.rects[rectNum].children:
                self.drawArrows(self.rects[rectNum].rect, self.rects[rect].rect)
+         if self.rects[rectNum]._revShown and self.rects[rectNum]._childrenShown:
+            for revisionRect in self.rects[rectNum]._revisionRects:
+               for rect in self.rects[rectNum].children:
+                  self.drawArrows(revisionRect, self.rects[rect].rect)
+         # #
+         # if self.rects[rectNum]._childrenShown:
+         #    for rect in self.rects[rectNum].children:
+         #       self.drawArrows(self.rects[rectNum].rect, self.rects[rect].rect)
 
 
 
