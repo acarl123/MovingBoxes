@@ -392,6 +392,7 @@ class NavigatorController:
    def onMiddleDn(self, event):
       mode = NavGuiMove(event, self.canvas)
       self.canvas.SetMode(mode)
+      self.mainWindow.NavCanvas.panning = True
 
       mode.Canvas.SetCursor(mode.GrabCursor)
       mode.StartMove = numpy.array(event.GetPosition())
@@ -401,3 +402,4 @@ class NavigatorController:
    def onMiddleUp(self, event):
       mode = GUIMode.GUIMouse(self.canvas)
       self.canvas.SetMode(mode)
+      self.mainWindow.NavCanvas.panning = False
