@@ -59,7 +59,7 @@ class NavigatorController:
    #--------------------------------------------------------------------------------------#
    def populateScreen(self):
       xy = (300, 200)
-      rect = NavRect('1', self.canvas, 'Number 1', xy, (80, 35), 0, NavigatorModel.colors['BLUE'])
+      rect = NavRect('1', self.mainWindow.NavCanvas, 'Number 1', xy, (80, 35), 0, NavigatorModel.colors['BLUE'])
       rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
       rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
       self.rects.append(rect)
@@ -244,7 +244,7 @@ class NavigatorController:
             revisionRect.PutInBackground()
             revisionRect.Text.PutInBackground()
       for arrow in self.allArrows:
-         arrow.PutInBackground
+         arrow.PutInBackground()
       self.canvas.Draw()
 
    #--------------------------------------------------------------------------------------#
@@ -257,7 +257,7 @@ class NavigatorController:
          self.rects[rectNum]._childrenShown=True
          xy = (440, 200)
          for rect in self.rects[rectNum].children:
-            rect = NavRect(rect, self.canvas, 'Number ' + rect, xy, (80, 35), 0, NavigatorModel.colors['BLUE'])
+            rect = NavRect(rect, self.mainWindow.NavCanvas, 'Number ' + rect, xy, (80, 35), 0, NavigatorModel.colors['BLUE'])
             rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
             rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
             self.rects.append(rect)
