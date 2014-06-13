@@ -37,6 +37,7 @@ class NavigatorController:
       # Initialize member variables
       self.rects = RectDict()
       self.selectedRects = []
+      self.expandingRects = []
       self.mousePositions = deque([])
       self.mouseRel = 0, 0
       self.ctrl_down = False
@@ -64,12 +65,22 @@ class NavigatorController:
       self.rects.append(rect)
       rect.rect.PutInBackground()
       rect.rect.Text.PutInBackground()
-
       # Hardcode in the children, parents, revisions
       self.fake_revisions = ['1.0', '1.1']
       self.rects[rect.rect.Name].children = ['2', '3', '4', '5']
-      self.rects[rect.rect.Name].parents = ['6', '7', '8']
+      # self.rects[rect.rect.Name].parents = ['6', '7', '8']
       self.rects[rect.rect.Name].revisions = {'1.0': self.fake_revisions, '1.1': self.fake_revisions, '1.2': self.fake_revisions} #@TODO: _revisions doesn't populate
+
+      for i in xrange(6, 10):
+         xy = random.randrange(0,600), random.randrange(0,600)
+         rect = NavRect(i, self.canvas, 'Number ' + `i`, xy, (80, 35), 0, NavigatorModel.colors['BLUE'])
+         rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
+         rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
+         self.rects.append(rect)
+         rect.rect.PutInBackground()
+         rect.rect.Text.PutInBackground()
+
+      self.rects['6'].children = ['10', '11', '12']
 
    def show(self):
       self.mainWindow.Show()
@@ -241,10 +252,10 @@ class NavigatorController:
    #--------------------------------------------------------------------------------------#
    def onExpandChildren(self, event):
       rectNum = self.selectedRects[0]
+      self.selectedRects = []
       if not self.rects[rectNum]._childrenShown:
          self.rects[rectNum]._childrenShown=True
          xy = (440, 200)
-         index = xy[1]
          for rect in self.rects[rectNum].children:
             rect = NavRect(rect, self.canvas, 'Number ' + rect, xy, (80, 35), 0, NavigatorModel.colors['BLUE'])
             rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
@@ -253,10 +264,12 @@ class NavigatorController:
             rect.rect.PutInBackground()
             rect.rect.Text.PutInBackground()
             self.drawArrows(self.rects[rectNum].rect, self.rects[rect].rect)
-            index += 40
-            xy = (xy[0], index)
+            if str(rect.rect.Name) == '2':
+               self.rects[rect.rect.Name].revisions = {'1.0': self.fake_revisions, '1.1': self.fake_revisions}
+               print self.rects[rect.rect.Name].revisions
+            self.selectedRects.append(rect)
          self.draw()
-
+      self.onArrangeVertically(event)
 
    def onAttributes(self, event):
       print 'Show Attributes'
@@ -281,16 +294,19 @@ class NavigatorController:
                for revisionRect in self.rects[rectNum]._revisionRects:
                   self.moveRect(revisionRect, (differencex, differencey))
                   index += revisionRect.BoundingBox.Width
-            index += self.rects[rectNum].rect.BoundingBox.Width +5
+            index += self.rects[rectNum].rect.BoundingBox.Width + 5
+
          self.draw()
 
    def onArrangeVertically(self, event):
+      print event.GetSelection()
       if self.selectedRects:
          firstRect = self.selectedRects[0]
          xpos1 = self.rects[firstRect].rect.BoundingBox.Left
          ypos1 = self.rects[firstRect].rect.BoundingBox.Top
          index = 0
          for rectNum in self.selectedRects:
+            # self.rects[rectNum].rect.SetLineColor(NavigatorModel.colors['WHITE'])
             xpos2 = self.rects[rectNum].rect.BoundingBox.Left
             ypos2 = self.rects[rectNum].rect.BoundingBox.Top
             differencex = xpos1-xpos2
@@ -304,14 +320,14 @@ class NavigatorController:
    def onDelete(self, event):
       #TODO: remove revisions
       print 'Delete'
-      # for rectNum in self.selectedRects:
-      #    self.rects[rectNum].rect.UnBindAll()
-      #    for revisionRect in self.rects[rectNum]._revisionRects:
-      #       self.canvas.RemoveObjects([revisionRect, revisionRect.Text])
-      #    self.canvas.RemoveObjects((self.rects[rectNum].rect, self.rects[rectNum].rect.Text))
-      #    del self.rects[rectNum]
-      # self.selectedRects=[]
-      # self.draw()
+      for rectNum in self.selectedRects:
+         self.rects[rectNum].rect.UnBindAll()
+         for revisionRect in self.rects[rectNum]._revisionRects:
+            self.canvas.RemoveObjects([revisionRect, revisionRect.Text])
+         self.canvas.RemoveObjects((self.rects[rectNum].rect, self.rects[rectNum].rect.Text))
+         del self.rects[rectNum]
+      self.selectedRects=[]
+      self.draw()
 
    def onLock(self, event):
       print 'On Lock'
@@ -453,15 +469,13 @@ class NavigatorController:
       for rectNum in self.rects:
          if not self.rects[rectNum]._revShown and self.rects[rectNum]._childrenShown:
             for rect in self.rects[rectNum].children:
+               if not self.rects[rect]:
+                  continue
                self.drawArrows(self.rects[rectNum].rect, self.rects[rect].rect)
          if self.rects[rectNum]._revShown and self.rects[rectNum]._childrenShown:
             for revisionRect in self.rects[rectNum]._revisionRects:
                for rect in self.rects[rectNum].children:
                   self.drawArrows(revisionRect, self.rects[rect].rect)
-         # #
-         # if self.rects[rectNum]._childrenShown:
-         #    for rect in self.rects[rectNum].children:
-         #       self.drawArrows(self.rects[rectNum].rect, self.rects[rect].rect)
 
    def onMiddleDn(self, event):
       mode = NavGuiMove(event, self.canvas)
