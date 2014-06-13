@@ -58,6 +58,7 @@ class NavigatorController:
    # Initialization (not bindings)
    #--------------------------------------------------------------------------------------#
    def populateScreen(self):
+
       xy = (300, 200)
       rect = NavRect('1', self.mainWindow.NavCanvas, 'Number 1', xy, (80, 35), 0, NavigatorModel.colors['BLUE'])
       rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
@@ -73,7 +74,7 @@ class NavigatorController:
 
       for i in xrange(6, 10):
          xy = random.randrange(0,600), random.randrange(0,600)
-         rect = NavRect(i, self.canvas, 'Number ' + `i`, xy, (80, 35), 0, NavigatorModel.colors['BLUE'])
+         rect = NavRect(i, self.mainWindow.NavCanvas, 'Number ' + `i`, xy, (80, 35), 0, NavigatorModel.colors['BLUE'])
          rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
          rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
          self.rects.append(rect)
@@ -266,7 +267,6 @@ class NavigatorController:
             self.drawArrows(self.rects[rectNum].rect, self.rects[rect].rect)
             if str(rect.rect.Name) == '2':
                self.rects[rect.rect.Name].revisions = {'1.0': self.fake_revisions, '1.1': self.fake_revisions}
-               print self.rects[rect.rect.Name].revisions
             self.selectedRects.append(rect)
          self.draw()
       self.onArrangeVertically(event)
@@ -299,7 +299,6 @@ class NavigatorController:
          self.draw()
 
    def onArrangeVertically(self, event):
-      print event.GetSelection()
       if self.selectedRects:
          firstRect = self.selectedRects[0]
          xpos1 = self.rects[firstRect].rect.BoundingBox.Left
@@ -319,7 +318,6 @@ class NavigatorController:
 
    def onDelete(self, event):
       #TODO: remove revisions
-      print 'Delete'
       for rectNum in self.selectedRects:
          self.rects[rectNum].rect.UnBindAll()
          for revisionRect in self.rects[rectNum]._revisionRects:
