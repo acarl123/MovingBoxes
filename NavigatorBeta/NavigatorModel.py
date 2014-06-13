@@ -141,10 +141,10 @@ class RectDict(object):
 
    def __setitem__(self, key, value):
       if isinstance(key, (int, long)):
-            myKey = key
+            navKey = key
       elif isinstance(key, basestring):
-            myKey = int(key)
-      self._rectDict[myKey] = value
+            navKey = int(key)
+      self._rectDict[navKey] = value
 
 
    def __iter__(self):

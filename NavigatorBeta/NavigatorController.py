@@ -233,7 +233,7 @@ class NavigatorController:
             revisionRect.PutInBackground()
             revisionRect.Text.PutInBackground()
       for arrow in self.allArrows:
-         arrow.PutInBackground
+         arrow.PutInBackground()
       self.canvas.Draw()
 
    #--------------------------------------------------------------------------------------#
