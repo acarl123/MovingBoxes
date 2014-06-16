@@ -23,9 +23,6 @@ import FindNodeDlg
 
 class NavigatorController:
    def __init__(self):
-      self.Config = ConfigFile('Config.txt')
-      self.efs = ExportFileUtils.ExportFileSet()
-
       # Setup view
       self.mainWindow = NavigatorFrame(None)
 
@@ -35,9 +32,11 @@ class NavigatorController:
       self.canvas.InitAll()
       self.canvas.Draw()
 
-      self.findDlg = FindNodeDlg.FindNodeDlg (self.canvas,self.efs)
-      # Setup model
+      # Setup model and efs
       self.rectModel = NavigatorModel.NavRect
+      self.Config = ConfigFile('Config.txt')
+      self.efs = ExportFileUtils.ExportFileSet()
+      self.findDlg = FindNodeDlg.FindNodeDlg (self.canvas,self.efs)
 
       # Bind normal events
       self.mainWindow.Bind(wx.EVT_MENU, self.onExit, self.mainWindow.menuExit)
@@ -69,37 +68,10 @@ class NavigatorController:
 
       # @TODO: Remove this in the future, but for now populate the screen for prototyping
       self.enable()
-      # self.populateScreen()
 
    #--------------------------------------------------------------------------------------#
    # Initialization (not bindings)
    #--------------------------------------------------------------------------------------#
-   def populateScreen(self):
-
-      xy = (300, 200)
-      rect = NavRect('1', self.mainWindow.NavCanvas, 'Number 1', xy, (80, 35), 0, NavigatorModel.colors['BLUE'])
-      rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
-      rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
-      self.rects.append(rect)
-      rect.rect.PutInBackground()
-      rect.rect.Text.PutInBackground()
-      # Hardcode in the children, parents, revisions
-      self.fake_revisions = ['1.0', '1.1']
-      self.rects[rect.rect.Name].children = ['2', '3', '4', '5']
-      # self.rects[rect.rect.Name].parents = ['6', '7', '8']
-      self.rects[rect.rect.Name].revisions = {'1.0': self.fake_revisions, '1.1': self.fake_revisions, '1.2': self.fake_revisions} #@TODO: _revisions doesn't populate
-
-      for i in xrange(6, 10):
-         xy = random.randrange(0,600), random.randrange(0,600)
-         rect = NavRect(i, self.mainWindow.NavCanvas, 'Number ' + `i`, xy, (80, 35), 0, NavigatorModel.colors['BLUE'])
-         rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
-         rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
-         self.rects.append(rect)
-         rect.rect.PutInBackground()
-         rect.rect.Text.PutInBackground()
-
-      self.rects['6'].children = ['10', '11', '12']
-
    def show(self):
       self.mainWindow.Show()
 
@@ -115,6 +87,8 @@ class NavigatorController:
       self.canvas.Unbind(FloatCanvas.EVT_MOTION, self.onDrag)
       self.canvas.Unbind(FloatCanvas.EVT_LEFT_UP, self.onLUp)
 
+   def OpenFile (self, file):
+      self.efs.parseFiles (file)
    #--------------------------------------------------------------------------------------#
    # Normal Bindings
    #--------------------------------------------------------------------------------------#
@@ -130,7 +104,6 @@ class NavigatorController:
                self.rects.append(rect)
                rect.rect.PutInBackground()
                rect.rect.Text.PutInBackground()
-         self.findDlg.Destroy()
          self.draw()
 
    def onExit(self, event):
@@ -148,7 +121,6 @@ class NavigatorController:
 
    def onOpen(self, event):
       dirtoken = DirectoryToken("EFS")
-      dir = dirtoken.get()
       dlg = wx.FileDialog(
             self.canvas, message="Opening an EFS...",
             defaultDir=os.getcwd(),
@@ -160,14 +132,9 @@ class NavigatorController:
          path = dlg.GetPath()
          print "Opening:" + path
          dirtoken.update(path)
-         dlg = BackgroundFunctionDlg.BackgroundFunctionDlg (self.canvas,"Opening EFS",self.OpenFile, path)
+         dlg = BackgroundFunctionDlg.BackgroundFunctionDlg (self.canvas, "Opening EFS", self.OpenFile, path)
          dlg.Go ();
       dlg.Destroy()
-
-   def OpenFile (self, file):
-      print file
-      self.efs.parseFiles (file)
-      # self.canvas.SetTitle ("EFS Navigator - " + file)
 
    def onScroll(self, event):
       scrollFactor = event.GetWheelRotation()
