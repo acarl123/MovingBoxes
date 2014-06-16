@@ -20,6 +20,7 @@ import ScriptLoader
 from DirectoryToken import *
 from ConfigFile import *
 import sys
+import FindNodeDlg
 
 class NavigatorController:
    def __init__(self):
@@ -36,6 +37,7 @@ class NavigatorController:
       self.canvas.InitAll()
       self.canvas.Draw()
 
+      self.findDlg = FindNodeDlg.FindNodeDlg (self.canvas,self.efs)
       # Setup model
       self.rectModel = NavigatorModel.NavRect
 
@@ -43,6 +45,7 @@ class NavigatorController:
       self.mainWindow.Bind(wx.EVT_MENU, self.onExit, self.mainWindow.menuExit)
       self.mainWindow.Bind(wx.EVT_MENU, self.onExport, self.mainWindow.menuExport)
       self.mainWindow.Bind(wx.EVT_MENU, self.onOpen, self.mainWindow.menuOpen)
+      self.mainWindow.Bind(wx.EVT_MENU, self.onAddObject, self.mainWindow.menuAddObject)
       self.mainWindow.Bind(wx.EVT_MOUSEWHEEL, self.onScroll)
       self.canvas.Bind(wx.EVT_CONTEXT_MENU, self.onContextMenu)
       self.canvas.Bind(wx.EVT_KEY_DOWN, self.onKeyEvents)
@@ -68,7 +71,7 @@ class NavigatorController:
 
       # @TODO: Remove this in the future, but for now populate the screen for prototyping
       self.enable()
-      self.populateScreen()
+      # self.populateScreen()
 
    #--------------------------------------------------------------------------------------#
    # Initialization (not bindings)
@@ -117,6 +120,22 @@ class NavigatorController:
    #--------------------------------------------------------------------------------------#
    # Normal Bindings
    #--------------------------------------------------------------------------------------#
+   def onAddObject(self, event):
+      if (self.findDlg.ShowModal () == wx.ID_OK):
+         if (self.findDlg.ReturnBOs != None):
+            for bo in self.findDlg.ReturnBOs:
+               print bo
+
+               xy = (300, 200)
+               rect = NavRect(str(bo), self.mainWindow.NavCanvas, str(bo), xy, (80, 35), 0, NavigatorModel.colors['BLUE'])
+               rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
+               rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
+               self.rects.append(rect)
+               rect.rect.PutInBackground()
+               rect.rect.Text.PutInBackground()
+      self.show()
+
+
    def onExit(self, event):
       self.mainWindow.Destroy()
       exit()
