@@ -3,7 +3,7 @@ from NavigatorModel import NavRect, RectDict
 from NavigatorView import NavigatorFrame
 from wx.lib.floatcanvas import FloatCanvas, GUIMode
 from NavigatorFloatCanvas import NavGuiMove
-import AttributeDlg
+
 import NavigatorModel
 import numpy
 import os
@@ -11,8 +11,22 @@ import random
 import wx
 FloatCanvas.FloatCanvas.HitTest = NavigatorModel.BB_HitTest
 
+
+# All imports dealing with EFS
+import ExportFileUtils
+import AttributeDlg
+import BackgroundFunctionDlg
+import ScriptLoader
+from DirectoryToken import *
+from ConfigFile import *
+import sys
+
 class NavigatorController:
    def __init__(self):
+      self.Config = ConfigFile('Config.txt')
+      self.efs = ExportFileUtils.ExportFileSet()
+
+
       # Setup view
       self.mainWindow = NavigatorFrame(None)
 
@@ -117,6 +131,8 @@ class NavigatorController:
          self.canvas.SaveAsImage(path)
 
    def onOpen(self, event):
+      dirtoken = DirectoryToken("EFS")
+      dir = dirtoken.get()
       dlg = wx.FileDialog(
             self.canvas, message="Opening an EFS...",
             defaultDir=os.getcwd(),
@@ -126,8 +142,16 @@ class NavigatorController:
             )
       if dlg.ShowModal() == wx.ID_OK:
          path = dlg.GetPath()
-         print path
+         print "Opening:" + path
+         dirtoken.update(path)
+         dlg = BackgroundFunctionDlg.BackgroundFunctionDlg (self.canvas,"Opening EFS",self.OpenFile, path)
+         dlg.Go ();
       dlg.Destroy()
+
+   def OpenFile (self, file):
+      print file
+      self.efs.parseFiles (file)
+      # self.canvas.SetTitle ("EFS Navigator - " + file)
 
    def onScroll(self, event):
       scrollFactor = event.GetWheelRotation()
