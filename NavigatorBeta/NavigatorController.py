@@ -6,27 +6,25 @@ from NavigatorFloatCanvas import NavGuiMove
 
 import NavigatorModel
 import numpy
-import os
+# import os
 import random
 import wx
 FloatCanvas.FloatCanvas.HitTest = NavigatorModel.BB_HitTest
-
 
 # All imports dealing with EFS
 import ExportFileUtils
 import AttributeDlg
 import BackgroundFunctionDlg
-import ScriptLoader
+# import ScriptLoader
 from DirectoryToken import *
 from ConfigFile import *
-import sys
+# import sys
 import FindNodeDlg
 
 class NavigatorController:
    def __init__(self):
       self.Config = ConfigFile('Config.txt')
       self.efs = ExportFileUtils.ExportFileSet()
-
 
       # Setup view
       self.mainWindow = NavigatorFrame(None)
@@ -125,16 +123,15 @@ class NavigatorController:
          if (self.findDlg.ReturnBOs != None):
             for bo in self.findDlg.ReturnBOs:
                print bo
-
                xy = (300, 200)
-               rect = NavRect(str(bo), self.mainWindow.NavCanvas, str(bo), xy, (80, 35), 0, NavigatorModel.colors['BLUE'])
+               rect = NavRect(bo, self.mainWindow.NavCanvas, str(bo), xy, (80, 35), 0, NavigatorModel.colors['BLUE'])
                rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
                rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
                self.rects.append(rect)
                rect.rect.PutInBackground()
                rect.rect.Text.PutInBackground()
-      self.show()
-
+         self.findDlg.Destroy()
+         self.draw()
 
    def onExit(self, event):
       self.mainWindow.Destroy()
@@ -332,7 +329,9 @@ class NavigatorController:
    # TODO: Add third parameter for node and use the attribute dialog that is already written
    def onAttributes(self, event):
       print 'Show Attributes'
-      # dlg = AttributeDlg.AttributeDlg(self.canvas, node.GetBaseBOPtr ())
+      rectNum = self.selectedRects[0]
+      dlg = AttributeDlg.AttributeDlg(self.canvas, self.rects[rectNum].rect.Name)
+      dlg.Show()
 
    #--------------------------------------------------------------------------------------#
    # ContextMenu with Multiple Objects Selected Bindings
