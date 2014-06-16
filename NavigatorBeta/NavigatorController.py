@@ -1,10 +1,11 @@
 from collections import deque
-import numpy
 from NavigatorModel import NavRect, RectDict
 from NavigatorView import NavigatorFrame
 from wx.lib.floatcanvas import FloatCanvas, GUIMode
 from NavigatorFloatCanvas import NavGuiMove
+import AttributeDlg
 import NavigatorModel
+import numpy
 import os
 import random
 import wx
@@ -27,6 +28,7 @@ class NavigatorController:
       # Bind normal events
       self.mainWindow.Bind(wx.EVT_MENU, self.onExit, self.mainWindow.menuExit)
       self.mainWindow.Bind(wx.EVT_MENU, self.onExport, self.mainWindow.menuExport)
+      self.mainWindow.Bind(wx.EVT_MENU, self.onOpen, self.mainWindow.menuOpen)
       self.mainWindow.Bind(wx.EVT_MOUSEWHEEL, self.onScroll)
       self.canvas.Bind(wx.EVT_CONTEXT_MENU, self.onContextMenu)
       self.canvas.Bind(wx.EVT_KEY_DOWN, self.onKeyEvents)
@@ -113,6 +115,19 @@ class NavigatorController:
          if not(path[-4:].lower() == ".png"):
             path = path+".png"
          self.canvas.SaveAsImage(path)
+
+   def onOpen(self, event):
+      dlg = wx.FileDialog(
+            self.canvas, message="Opening an EFS...",
+            defaultDir=os.getcwd(),
+            defaultFile="",
+            wildcard="EFS files (*txt)|*.txt",
+            style=wx.OPEN | wx.CHANGE_DIR
+            )
+      if dlg.ShowModal() == wx.ID_OK:
+         path = dlg.GetPath()
+         print path
+      dlg.Destroy()
 
    def onScroll(self, event):
       scrollFactor = event.GetWheelRotation()
@@ -271,8 +286,10 @@ class NavigatorController:
          self.draw()
       self.onArrangeVertically(event)
 
+   # TODO: Add third parameter for node and use the attribute dialog that is already written
    def onAttributes(self, event):
       print 'Show Attributes'
+      # dlg = AttributeDlg.AttributeDlg(self.canvas, node.GetBaseBOPtr ())
 
    #--------------------------------------------------------------------------------------#
    # ContextMenu with Multiple Objects Selected Bindings
