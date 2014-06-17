@@ -1,30 +1,25 @@
 from collections import deque
+from ConfigFile import *
+from DirectoryToken import *
 from NavigatorModel import NavRect, RectDict
 from NavigatorView import NavigatorFrame
 from wx.lib.floatcanvas import FloatCanvas, GUIMode
 from NavigatorFloatCanvas import NavGuiMove
-
+import AddNodeDlg
+import AttributeDlg
+import BackgroundFunctionDlg
+import ExportFileBusinessObject as efbo
+import ExportFileRelationship as efrel
+import ExportFileUtils
+import MDXUtils
 import NavigatorModel
 import numpy
+import TypeColors
 import os, sys
 import random
 import wx
 import cPickle
 FloatCanvas.FloatCanvas.HitTest = NavigatorModel.BB_HitTest
-
-# All imports dealing with EFS
-sys.path.append('C:\\hg\\tools_lag\\EFSUtils')
-import ExportFileUtils
-import AttributeDlg
-import BackgroundFunctionDlg
-# import ScriptLoader
-from DirectoryToken import *
-from ConfigFile import *
-# import sys
-import FindNodeDlg
-import AddNodeDlg
-import ExportFileBusinessObject as efbo
-import TypeColors
 
 class NavigatorController:
    def __init__(self):
@@ -41,7 +36,7 @@ class NavigatorController:
       self.rectModel = NavigatorModel.NavRect
       self.Config = ConfigFile('Config.txt')
       self.efs = ExportFileUtils.ExportFileSet()
-      # self.findDlg = FindNodeDlg.FindNodeDlg (self.canvas,self.efs)
+      self.busObjDict = self.efs.newBusinessObjectDict(bodType=efbo.BOD_BOOLEAN_TYPE)
       self.addNodeDlg = AddNodeDlg.AddNodeDlg(self.canvas, self.efs)
 
       # Bind normal events
@@ -64,17 +59,15 @@ class NavigatorController:
       self.mousePositions = deque([])
       self.mouseRel = 0, 0
       self.ctrl_down = False
+      self.allArrows = []
+      self.arrowCount = 0
+      self.enable()
+
       # Initial bounding box member variables
       self.Drawing = False
       self.RBRect = None
       self.StartPointWorld = None
       self.Tol = 5
-
-      self.allArrows = []
-      self.arrowCount = 0
-
-      # @TODO: Remove this in the future, but for now populate the screen for prototyping
-      self.enable()
 
    #--------------------------------------------------------------------------------------#
    # Initialization (not bindings)
@@ -89,16 +82,20 @@ class NavigatorController:
       self.canvas.Bind(FloatCanvas.EVT_LEFT_UP, self.onLUp)
 
    def disable(self):
-      # Bind events to FloatCanvas
+      # Unbind events to FloatCanvas
       self.canvas.Unbind(FloatCanvas.EVT_LEFT_DOWN, self.onClick)
       self.canvas.Unbind(FloatCanvas.EVT_MOTION, self.onDrag)
       self.canvas.Unbind(FloatCanvas.EVT_LEFT_UP, self.onLUp)
 
    def OpenFile (self, file):
-      self.efs.parseFiles (file)
+      # Parse and populate the dictionary
+      self.efs.parseFiles (file, ignoreDanglingRefs=False, skipRels=False)
+      self.busObjDict = self.efs.getAllBusinessObjectsDict()
+
    #--------------------------------------------------------------------------------------#
    # Normal Bindings
    #--------------------------------------------------------------------------------------#
+   # @TODO: Need to eventually redo Matt Fuller's code but this works for now
    def onAddObject(self, event):
       if (self.addNodeDlg.ShowModal () == wx.ID_OK):
          if (self.addNodeDlg.ReturnBOs != None):
@@ -109,9 +106,9 @@ class NavigatorController:
                self.boType = efbo.getTypeName(bo)
                if self.boType in TypeColors.ObjColorDict:
                   colorSet = TypeColors.ObjColorDict[self.boType]
-                  rect = NavRect(bo, self.mainWindow.NavCanvas, str(bo), xy, (80, 35), 0, colorSet)
+                  rect = NavRect(bo, self.mainWindow.NavCanvas, '%s' % efbo.getName(bo), xy, (80, 35), 0, colorSet)
                else:
-                  rect = NavRect(bo, self.mainWindow.NavCanvas, str(bo), xy, (80, 35), 0, NavigatorModel.colors['WHITE'])
+                  rect = NavRect(bo, self.mainWindow.NavCanvas, '%s' % efbo.getName(bo), xy, (80, 35), 0, NavigatorModel.colors['WHITE'])
                rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
                rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
                self.rects.append(rect)
@@ -168,34 +165,38 @@ class NavigatorController:
             self.popupID2 = wx.NewId()
             self.popupID3 = wx.NewId()
             self.popupID4 = wx.NewId()
+            self.popupID5 = wx.NewId()
             self.canvas.Bind(wx.EVT_MENU, self.onExpandRevisions, id=self.popupID1)
             self.canvas.Bind(wx.EVT_MENU, self.onAttributes, id=self.popupID2)
             self.canvas.Bind(wx.EVT_MENU, self.onDelete, id=self.popupID3)
             self.canvas.Bind(wx.EVT_MENU, self.onLock, id=self.popupID4)
+            # self.canvas.Bind(wx.EVT_MENU, self.onExpandOutgoing, id=self.popupID5)
          menu = wx.Menu()
          menu.Append(self.popupID1, 'Expand Revisions')
          menu.Append(self.popupID2, 'Attributes/Properties')
          menu.Append(self.popupID3, 'Delete Selected')
          menu.Append(self.popupID4, 'Lock')
+         # menu.Append(self.popupID5, 'Expand Outgoing')
+
          self.canvas.PopupMenu(menu)
          menu.Destroy()
          return
 
       if len(self.selectedRects) > 1:
-         if not hasattr(self, 'popupID5'):
-            self.popupID5 = wx.NewId()
+         if not hasattr(self, 'popupID6'):
             self.popupID6 = wx.NewId()
             self.popupID7 = wx.NewId()
             self.popupID8 = wx.NewId()
-            self.canvas.Bind(wx.EVT_MENU, self.onArrangeHorizontally, id=self.popupID5)
-            self.canvas.Bind(wx.EVT_MENU, self.onArrangeVertically, id=self.popupID6)
-            self.canvas.Bind(wx.EVT_MENU, self.onDelete, id=self.popupID7)
-            self.canvas.Bind(wx.EVT_MENU, self.onLock, id=self.popupID8)
+            self.popupID9 = wx.NewId()
+            self.canvas.Bind(wx.EVT_MENU, self.onArrangeHorizontally, id=self.popupID6)
+            self.canvas.Bind(wx.EVT_MENU, self.onArrangeVertically, id=self.popupID7)
+            self.canvas.Bind(wx.EVT_MENU, self.onDelete, id=self.popupID8)
+            self.canvas.Bind(wx.EVT_MENU, self.onLock, id=self.popupID9)
          menu = wx.Menu()
-         menu.Append(self.popupID5, 'Arrange Horizontally')
-         menu.Append(self.popupID6, 'Arrange Vertically')
-         menu.Append(self.popupID7, 'Delete Selected')
-         menu.Append(self.popupID8, 'Lock')
+         menu.Append(self.popupID6, 'Arrange Horizontally')
+         menu.Append(self.popupID7, 'Arrange Vertically')
+         menu.Append(self.popupID8, 'Delete Selected')
+         menu.Append(self.popupID9, 'Lock')
          self.canvas.PopupMenu(menu)
          menu.Destroy()
 
@@ -288,23 +289,92 @@ class NavigatorController:
    #--------------------------------------------------------------------------------------#
    def onExpandRevisions(self, event):
       rectNum = self.selectedRects[0]
-      self.selectedRects = []
-      if not self.rects[rectNum]._childrenShown:
-         self.rects[rectNum]._childrenShown=True
-         xy = (440, 200)
-         for rect in self.rects[rectNum].children:
-            rect = NavRect(rect, self.mainWindow.NavCanvas, 'Number ' + rect, xy, (80, 35), 0, NavigatorModel.colors['BLUE'])
-            rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
-            rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
-            self.rects.append(rect)
-            rect.rect.PutInBackground()
-            rect.rect.Text.PutInBackground()
-            self.drawArrows(self.rects[rectNum].rect, self.rects[rect].rect)
-            if str(rect.rect.Name) == '2':
-               self.rects[rect.rect.Name].revisions = {'1.0': self.fake_revisions, '1.1': self.fake_revisions}
-            self.selectedRects.append(rect)
-         self.draw()
-      self.onArrangeVertically(event)
+      if self.rects[rectNum]._revShown:
+         self.rects[rectNum]._revShown = False
+         for revisionRect in self.rects[rectNum]._revisionRects:
+            self.canvas.RemoveObjects([revisionRect, revisionRect.Text])
+         self.rects[rectNum]._revisionRects = []
+      else:
+         xy = self.rects[rectNum].rect.BoundingBox.Right, self.rects[rectNum].rect.BoundingBox.Center[1] - self.rects[rectNum].rect.BoundingBox.Height/4
+         bo = self.rects[rectNum].rect.Name
+         self.boType = efbo.getTypeName(bo)
+         for revision in efbo.getAllRevisions(bo, self.busObjDict):
+            if self.boType in TypeColors.ObjColorDict:
+               colorSet = TypeColors.ObjColorDict[self.boType]
+               rect = self.canvas.AddRectangle(xy, (40, 17.5), LineWidth=0, FillColor=colorSet, LineColor='WHITE')
+            else:
+               rect = self.canvas.AddRectangle(xy, (40, 17.5), LineWidth=0, FillColor=NavigatorModel.colors['WHITE'], LineColor='WHITE')
+            rect.Name = '%s' % efbo.getRevision(revision)
+            rect.Text = self.canvas.AddScaledText('%s' % efbo.getRevision(revision), (xy[0]+20, xy[1]+8.75), 7, Position = "cc")
+            self.rects[bo]._revisionRects.append(rect)
+            xy = xy[0] + 40, xy[1]
+            self.rects[bo]._revShown=True
+      self.draw()
+
+   # def onExpandOutgoing(self, event):
+      # bo = self.selectedRects[0]
+      # # if not self.rects[bo]._childrenShown:
+      # #    self.rects[bo]._childrenShown = True
+      # #    xy = (440, 200)
+      # #    print efbo.getFromRelationship(bo)
+      # #    # for rect in efbo.getFromRelationship(bo):
+      # xy = (440, 200)
+      # for rev in efbo.getAllRevisions(bo, self.busObjDict):
+      #    rels = efbo.getFromRelationship(rev)
+      #    for rel in rels:
+      #       if efrel.getTypeName(rel) == MDXUtils.REL_AD: continue
+      #       toBo = efrel.getTo(rel)
+      #       if not self.rects[toBo]:
+      #          print toBo
+      #          if toBo in TypeColors.ObjColorDict:
+      #             colorSet = TypeColors.ObjColorDict[toBo]
+      #             rect = NavRect(toBo, self.mainWindow.NavCanvas, '%s' % efbo.getName(toBo), xy, (80, 35), 0, colorSet)
+      #          else:
+      #             rect = NavRect(toBo, self.mainWindow.NavCanvas, '%s' % efbo.getName(toBo), xy, (80, 35), 0, NavigatorModel.colors['WHITE'])
+      #          rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
+      #          rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
+      #          self.rects.append(rect)
+      #          rect.rect.PutInBackground()
+      #          rect.rect.Text.PutInBackground()
+      #          print 'draw'
+      #          self.drawArrows(self.rects[bo].rect, self.rects[toBo].rect)
+      #          self.selectedRects.append(toBo)
+      #    rels = efbo.getToRelationship(rev)
+      #    for rel in rels:
+      #       if efrel.getTypeName(rel) != MDXUtils.REL_AD: continue
+      #       fromBo = efrel.getFrom(rel)
+      #       if not self.rects[fromBo]:
+      #          if fromBo in TypeColors.ObjColorDict:
+      #             colorSet = TypeColors.ObjColorDict[fromBo]
+      #             rect = NavRect(fromBo, self.mainWindow.NavCanvas, '%s' % efbo.getName(fromBo), xy, (80, 35), 0, colorSet)
+      #          else:
+      #             rect = NavRect(fromBo, self.mainWindow.NavCanvas, '%s' % efbo.getName(fromBo), xy, (80, 35), 0, NavigatorModel.colors['WHITE'])
+      #          rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
+      #          rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
+      #          self.rects.append(rect)
+      #          rect.rect.PutInBackground()
+      #          rect.rect.Text.PutInBackground()
+      #          self.drawArrows(self.rects[bo].rect, self.rects[fromBo].rect)
+      #          self.selectedRects.append(fromBo)
+      # self.draw()
+      # self.onArrangeVertically(event)
+
+      # if not self.rects[rectNum]._childrenShown:
+      #    self.rects[rectNum]._childrenShown=True
+
+      #    for rect in self.rects[rectNum].children:
+      #       rect = NavRect(rect, self.mainWindow.NavCanvas, 'Number ' + rect, xy, (80, 35), 0, NavigatorModel.colors['BLUE'])
+      #       rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
+      #       rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
+      #       self.rects.append(rect)
+      #       rect.rect.PutInBackground()
+      #       rect.rect.Text.PutInBackground()
+      #       self.drawArrows(self.rects[rectNum].rect, self.rects[rect].rect)
+      #       if str(rect.rect.Name) == '2':
+      #          self.rects[rect.rect.Name].revisions = {'1.0': self.fake_revisions, '1.1': self.fake_revisions}
+      #       self.selectedRects.append(rect)
+      #    self.draw()
+      # self.onArrangeVertically(event)
 
    # TODO: Add third parameter for node and use the attribute dialog that is already written
    def onAttributes(self, event):
@@ -396,23 +466,10 @@ class NavigatorController:
       self.canvas.Draw()
 
    def onRectLeftDClick(self, object, event):
-      if self.rects[object.Name]._revShown: #collapse the revisions and remove them from the screen
-         self.rects[object.Name]._revShown = False
-         for revisionRect in self.rects[object.Name]._revisionRects:
-            self.canvas.RemoveObjects([revisionRect, revisionRect.Text])
-         self.rects[object.Name]._revisionRects = []
-      else:
-         # Get the right middle position of the rectangle
-         xy = object.BoundingBox.Right, object.BoundingBox.Center[1] - object.BoundingBox.Height/4
-         # Loop through the keys in a dict
-         for revision in self.rects[object.Name].revisions:
-            rect = self.canvas.AddRectangle(xy, (40, 17.5), LineWidth=0, FillColor=NavigatorModel.colors['BLUE'], LineColor='WHITE')
-            rect.Name = '%s' % revision
-            rect.Text = self.canvas.AddScaledText('%s' % revision, (xy[0]+20, xy[1]+8.75), 7, Position = "cc")
-            self.rects[object.Name]._revisionRects.append(rect)
-            xy = xy[0] + 40, xy[1]
-            self.rects[object.Name]._revShown=True
-      self.draw()
+      print 'ya'
+      self.selectedRects = []
+      self.selectedRects.append(object.Name)
+      self.onExpandRevisions(event)
 
    #--------------------------------------------------------------------------------------#
    # Drawing Methods
