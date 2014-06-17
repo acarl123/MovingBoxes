@@ -20,6 +20,9 @@ from DirectoryToken import *
 from ConfigFile import *
 # import sys
 import FindNodeDlg
+import AddNodeDlg
+import ExportFileBusinessObject as efbo
+import TypeColors
 
 class NavigatorController:
    def __init__(self):
@@ -36,7 +39,8 @@ class NavigatorController:
       self.rectModel = NavigatorModel.NavRect
       self.Config = ConfigFile('Config.txt')
       self.efs = ExportFileUtils.ExportFileSet()
-      self.findDlg = FindNodeDlg.FindNodeDlg (self.canvas,self.efs)
+      # self.findDlg = FindNodeDlg.FindNodeDlg (self.canvas,self.efs)
+      self.addNodeDlg = AddNodeDlg.AddNodeDlg(self.canvas, self.efs)
 
       # Bind normal events
       self.mainWindow.Bind(wx.EVT_MENU, self.onExit, self.mainWindow.menuExit)
@@ -93,12 +97,17 @@ class NavigatorController:
    # Normal Bindings
    #--------------------------------------------------------------------------------------#
    def onAddObject(self, event):
-      if (self.findDlg.ShowModal () == wx.ID_OK):
-         if (self.findDlg.ReturnBOs != None):
-            for bo in self.findDlg.ReturnBOs:
+      if (self.addNodeDlg.ShowModal () == wx.ID_OK):
+         if (self.addNodeDlg.ReturnBOs != None):
+            for bo in self.addNodeDlg.ReturnBOs:
                print bo
                xy = (300, 200)
-               rect = NavRect(bo, self.mainWindow.NavCanvas, str(bo), xy, (80, 35), 0, NavigatorModel.colors['BLUE'])
+               self.boType = efbo.getTypeName(bo)
+               if self.boType in TypeColors.ObjColorDict:
+                  colorSet = TypeColors.ObjColorDict[self.boType]
+                  rect = NavRect(bo, self.mainWindow.NavCanvas, str(bo), xy, (80, 35), 0, colorSet)
+               else:
+                  rect = NavRect(bo, self.mainWindow.NavCanvas, str(bo), xy, (80, 35), 0, NavigatorModel.colors['WHITE'])
                rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
                rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
                self.rects.append(rect)
@@ -155,12 +164,12 @@ class NavigatorController:
             self.popupID2 = wx.NewId()
             self.popupID3 = wx.NewId()
             self.popupID4 = wx.NewId()
-            self.canvas.Bind(wx.EVT_MENU, self.onExpandChildren, id=self.popupID1)
+            self.canvas.Bind(wx.EVT_MENU, self.onExpandRevisions, id=self.popupID1)
             self.canvas.Bind(wx.EVT_MENU, self.onAttributes, id=self.popupID2)
             self.canvas.Bind(wx.EVT_MENU, self.onDelete, id=self.popupID3)
             self.canvas.Bind(wx.EVT_MENU, self.onLock, id=self.popupID4)
          menu = wx.Menu()
-         menu.Append(self.popupID1, 'Expand')
+         menu.Append(self.popupID1, 'Expand Revisions')
          menu.Append(self.popupID2, 'Attributes/Properties')
          menu.Append(self.popupID3, 'Delete Selected')
          menu.Append(self.popupID4, 'Lock')
@@ -273,7 +282,7 @@ class NavigatorController:
    #--------------------------------------------------------------------------------------#
    # ContextMenu with Single Object Selected Bindings
    #--------------------------------------------------------------------------------------#
-   def onExpandChildren(self, event):
+   def onExpandRevisions(self, event):
       rectNum = self.selectedRects[0]
       self.selectedRects = []
       if not self.rects[rectNum]._childrenShown:
