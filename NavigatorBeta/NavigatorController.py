@@ -97,7 +97,15 @@ class NavigatorController:
 
    def makeLegend(self):
       listCtrl = self.mainWindow.m_listCtrl1
-      
+      listCtrl.InsertColumn(0, 'Type', width=75)
+      listCtrl.InsertColumn(1, 'Color',) # TODO: use list autowidth mixin
+
+      for type, color in TypeColors.ObjColorDict.iteritems():
+         index = listCtrl.InsertStringItem(sys.maxint, type)
+         listCtrl.SetStringItem(index, 1, ' ')
+         item = listCtrl.GetItem(index)
+         item.SetBackgroundColour(color)
+         listCtrl.SetItem(item)
 
    #--------------------------------------------------------------------------------------#
    # Normal Canvas Bindings
