@@ -1,3 +1,5 @@
+import os, sys
+sys.path.append('C:\\hg\\tools_lag\\EFSUtils')
 from collections import deque
 from ConfigFile import *
 from DirectoryToken import *
@@ -15,7 +17,6 @@ import MDXUtils
 import NavigatorModel
 import numpy
 import TypeColors
-import os, sys
 import random
 import wx
 import cPickle
