@@ -56,6 +56,7 @@ class BackgroundFunctionDlg(wx.Dialog):
 		with stdoutMsgPump(self) as s:
 			self.work(*args)
 		self.done = True
+		self.Destroy()
 		#self.EndModal(wx.ID_OK)
 		
 	def Go (self):
