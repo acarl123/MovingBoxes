@@ -26,6 +26,7 @@ class NavigatorController:
    def __init__(self):
       # Setup view
       self.mainWindow = NavigatorFrame(None)
+      self.makeLegend()
 
       # Initialize FloatCanvas defaults
       self.canvas = self.mainWindow.NavCanvas.Canvas
@@ -93,6 +94,10 @@ class NavigatorController:
       # Parse and populate the dictionary
       self.efs.parseFiles (file, ignoreDanglingRefs=False, skipRels=False)
       self.busObjDict = self.efs.getAllBusinessObjectsDict()
+
+   def makeLegend(self):
+      listCtrl = self.mainWindow.m_listCtrl1
+      
 
    #--------------------------------------------------------------------------------------#
    # Normal Canvas Bindings
