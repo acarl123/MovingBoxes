@@ -8,6 +8,7 @@ from NavigatorFloatCanvas import NavGuiMove
 import AddNodeDlg
 import AttributeDlg
 import BackgroundFunctionDlg
+import cPickle
 import ExportFileBusinessObject as efbo
 import ExportFileRelationship as efrel
 import ExportFileUtils
@@ -18,7 +19,6 @@ import TypeColors
 import os, sys
 import random
 import wx
-import cPickle
 FloatCanvas.FloatCanvas.HitTest = NavigatorModel.BB_HitTest
 
 class NavigatorController:
@@ -39,18 +39,19 @@ class NavigatorController:
       self.busObjDict = self.efs.newBusinessObjectDict(bodType=efbo.BOD_BOOLEAN_TYPE)
       self.addNodeDlg = AddNodeDlg.AddNodeDlg(self.canvas, self.efs)
 
-      # Bind normal events
-      self.mainWindow.Bind(wx.EVT_MENU, self.onExit, self.mainWindow.menuExit)
-      self.mainWindow.Bind(wx.EVT_MENU, self.onExport, self.mainWindow.menuExport)
-      self.mainWindow.Bind(wx.EVT_MENU, self.onOpen, self.mainWindow.menuOpen)
-      self.mainWindow.Bind(wx.EVT_MENU, self.onAddObject, self.mainWindow.menuAddObject)
-      self.mainWindow.Bind(wx.EVT_MENU, self.onSave, self.mainWindow.menuSave)
-      self.mainWindow.Bind(wx.EVT_MOUSEWHEEL, self.onScroll)
+      # Bind normal canvas events
       self.canvas.Bind(wx.EVT_CONTEXT_MENU, self.onContextMenu)
       self.canvas.Bind(wx.EVT_KEY_DOWN, self.onKeyEvents)
       self.canvas.Bind(wx.EVT_KEY_UP, self.onKeyEvents)
       self.canvas.Bind(wx.EVT_MIDDLE_DOWN, self.onMiddleDn)
       self.canvas.Bind(wx.EVT_MIDDLE_UP, self.onMiddleUp)
+      # Bind normal window events
+      self.mainWindow.Bind(wx.EVT_MENU, self.onAddObject, self.mainWindow.menuAddObject)
+      self.mainWindow.Bind(wx.EVT_MENU, self.onExit, self.mainWindow.menuExit)
+      self.mainWindow.Bind(wx.EVT_MENU, self.onExport, self.mainWindow.menuExport)
+      self.mainWindow.Bind(wx.EVT_MENU, self.onOpen, self.mainWindow.menuOpen)
+      self.mainWindow.Bind(wx.EVT_MENU, self.onSave, self.mainWindow.menuSave)
+      self.mainWindow.Bind(wx.EVT_MOUSEWHEEL, self.onScroll)
 
       # Initialize member variables
       self.rects = RectDict()
@@ -93,15 +94,36 @@ class NavigatorController:
       self.busObjDict = self.efs.getAllBusinessObjectsDict()
 
    #--------------------------------------------------------------------------------------#
-   # Normal Bindings
+   # Normal Canvas Bindings
    #--------------------------------------------------------------------------------------#
-   # @TODO: Need to eventually redo Matt Fuller's code but this works for now
+   def onKeyEvents(self, event):
+      self.ctrl_down = event.ControlDown()
+      if event.GetKeyCode() == wx.WXK_DELETE:
+         self.onDelete(event)
+
+   def onMiddleDn(self, event):
+      mode = NavGuiMove(event, self.canvas)
+      self.canvas.SetMode(mode)
+      self.mainWindow.NavCanvas.panning = True
+
+      mode.Canvas.SetCursor(mode.GrabCursor)
+      mode.StartMove = numpy.array(event.GetPosition())
+      mode.MidMove = mode.StartMove
+      mode.PrevMoveXY = (0, 0)
+
+   def onMiddleUp(self, event):
+      mode = GUIMode.GUIMouse(self.canvas)
+      self.canvas.SetMode(mode)
+      self.mainWindow.NavCanvas.panning = False
+
+   #--------------------------------------------------------------------------------------#
+   # Normal Window Bindings
+   #--------------------------------------------------------------------------------------#
+   # TODO: Need to eventually redo Matt Fuller's code but this addNodeDlg works for now
    def onAddObject(self, event):
       if (self.addNodeDlg.ShowModal () == wx.ID_OK):
          if (self.addNodeDlg.ReturnBOs != None):
             for bo in self.addNodeDlg.ReturnBOs:
-               print bo
-
                xy = (random.randint(0, self.mainWindow.GetSize()[0]), random.randint(0, self.mainWindow.GetSize()[1]))
                self.boType = efbo.getTypeName(bo)
                if self.boType in TypeColors.ObjColorDict:
@@ -128,32 +150,6 @@ class NavigatorController:
          if not(path[-4:].lower() == ".png"):
             path = path+".png"
          self.canvas.SaveAsImage(path)
-
-   def onOpen(self, event):
-      dirtoken = DirectoryToken("EFS")
-      dlg = wx.FileDialog(
-            self.canvas, message="Opening an EFS...",
-            defaultDir=os.getcwd(),
-            defaultFile="",
-            wildcard="EFS files (*txt)|*.txt",
-            style=wx.OPEN | wx.CHANGE_DIR
-            )
-      if dlg.ShowModal() == wx.ID_OK:
-         path = dlg.GetPath()
-         print "Opening:" + path
-         dirtoken.update(path)
-         dlg = BackgroundFunctionDlg.BackgroundFunctionDlg (self.canvas,"Opening EFS",self.OpenFile, path)
-         dlg.Go()
-      dlg.Destroy()
-
-   def onScroll(self, event):
-      scrollFactor = event.GetWheelRotation()
-      if scrollFactor < 0:
-         scrollFactor = 0.5
-      elif scrollFactor > 0:
-         scrollFactor = 2
-      self.mainWindow.NavCanvas.scale /= scrollFactor
-      self.canvas.Zoom(scrollFactor, event.GetPositionTuple(), 'pixel')
 
    def onContextMenu(self, event):
       if len(self.selectedRects) == 0:
@@ -200,10 +196,34 @@ class NavigatorController:
          self.canvas.PopupMenu(menu)
          menu.Destroy()
 
-   def onKeyEvents(self, event):
-      self.ctrl_down = event.ControlDown()
-      if event.GetKeyCode() == wx.WXK_DELETE:
-         self.onDelete(event)
+   def onOpen(self, event):
+      dirtoken = DirectoryToken("EFS")
+      dlg = wx.FileDialog(
+            self.canvas, message="Opening an EFS...",
+            defaultDir=os.getcwd(),
+            defaultFile="",
+            wildcard="EFS files (*txt)|*.txt",
+            style=wx.OPEN | wx.CHANGE_DIR
+            )
+      if dlg.ShowModal() == wx.ID_OK:
+         path = dlg.GetPath()
+         print "Opening:" + path
+         dirtoken.update(path)
+         dlg = BackgroundFunctionDlg.BackgroundFunctionDlg (self.canvas,"Opening EFS",self.OpenFile, path)
+         dlg.Go()
+      dlg.Destroy()
+
+   def onSave(self, event):
+      print 'saved'
+
+   def onScroll(self, event):
+      scrollFactor = event.GetWheelRotation()
+      if scrollFactor < 0:
+         scrollFactor = 0.5
+      elif scrollFactor > 0:
+         scrollFactor = 2
+      self.mainWindow.NavCanvas.scale /= scrollFactor
+      self.canvas.Zoom(scrollFactor, event.GetPositionTuple(), 'pixel')
 
    #--------------------------------------------------------------------------------------#
    # FloatCanvas Bindings
@@ -571,20 +591,3 @@ class NavigatorController:
                for rect in self.rects[rectNum].children:
                   self.drawArrows(revisionRect, self.rects[rect].rect)
 
-   def onMiddleDn(self, event):
-      mode = NavGuiMove(event, self.canvas)
-      self.canvas.SetMode(mode)
-      self.mainWindow.NavCanvas.panning = True
-
-      mode.Canvas.SetCursor(mode.GrabCursor)
-      mode.StartMove = numpy.array(event.GetPosition())
-      mode.MidMove = mode.StartMove
-      mode.PrevMoveXY = (0, 0)
-
-   def onMiddleUp(self, event):
-      mode = GUIMode.GUIMouse(self.canvas)
-      self.canvas.SetMode(mode)
-      self.mainWindow.NavCanvas.panning = False
-
-   def onSave(self, event):
-      print 'saved'
