@@ -203,7 +203,6 @@ class NavigatorController:
          menu.Destroy()
 
    def onOpen(self, event):
-      dirtoken = DirectoryToken("EFS")
       dlg = wx.FileDialog(
             self.canvas, message="Opening an EFS...",
             defaultDir=os.getcwd(),
@@ -214,8 +213,7 @@ class NavigatorController:
       if dlg.ShowModal() == wx.ID_OK:
          path = dlg.GetPath()
          print "Opening:" + path
-         dirtoken.update(path)
-         dlg = BackgroundFunctionDlg.BackgroundFunctionDlg (self.canvas,"Opening EFS",self.OpenFile, path)
+         dlg = BackgroundFunctionDlg.BackgroundFunctionDlg(self.canvas, 'Opening EFS', self.OpenFile, path)
          dlg.Go()
       dlg.Destroy()
 
