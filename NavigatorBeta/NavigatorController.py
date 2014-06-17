@@ -6,13 +6,15 @@ from NavigatorFloatCanvas import NavGuiMove
 
 import NavigatorModel
 import numpy
-import os
+import os, sys
 import random
 import wx
+import cPickle
 FloatCanvas.FloatCanvas.HitTest = NavigatorModel.BB_HitTest
 
 
 # All imports dealing with EFS
+sys.path.append('C:\\hg\\tools_lag\\EFSUtils')
 import ExportFileUtils
 import AttributeDlg
 import BackgroundFunctionDlg
@@ -46,6 +48,7 @@ class NavigatorController:
       self.mainWindow.Bind(wx.EVT_MENU, self.onExport, self.mainWindow.menuExport)
       self.mainWindow.Bind(wx.EVT_MENU, self.onOpen, self.mainWindow.menuOpen)
       self.mainWindow.Bind(wx.EVT_MENU, self.onAddObject, self.mainWindow.menuAddObject)
+      self.mainWindow.Bind(wx.EVT_MENU, self.onSave, self.mainWindow.menuSave)
       self.mainWindow.Bind(wx.EVT_MOUSEWHEEL, self.onScroll)
       self.canvas.Bind(wx.EVT_CONTEXT_MENU, self.onContextMenu)
       self.canvas.Bind(wx.EVT_KEY_DOWN, self.onKeyEvents)
@@ -126,14 +129,14 @@ class NavigatorController:
             for bo in self.findDlg.ReturnBOs:
                print bo
 
-               xy = (300, 200)
+               xy = (random.randint(0, self.mainWindow.GetSize()[0]), random.randint(0, self.mainWindow.GetSize()[1]))
                rect = NavRect(str(bo), self.mainWindow.NavCanvas, str(bo), xy, (80, 35), 0, NavigatorModel.colors['BLUE'])
                rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
                rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
                self.rects.append(rect)
                rect.rect.PutInBackground()
                rect.rect.Text.PutInBackground()
-      self.show()
+      self.draw()
 
 
    def onExit(self, event):
@@ -164,7 +167,7 @@ class NavigatorController:
          print "Opening:" + path
          dirtoken.update(path)
          dlg = BackgroundFunctionDlg.BackgroundFunctionDlg (self.canvas,"Opening EFS",self.OpenFile, path)
-         dlg.Go ();
+         dlg.Go()
       dlg.Destroy()
 
    def OpenFile (self, file):
@@ -549,3 +552,6 @@ class NavigatorController:
       mode = GUIMode.GUIMouse(self.canvas)
       self.canvas.SetMode(mode)
       self.mainWindow.NavCanvas.panning = False
+
+   def onSave(self, event):
+      print 'saved'
