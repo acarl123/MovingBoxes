@@ -12,24 +12,22 @@ import wx
 import cPickle
 FloatCanvas.FloatCanvas.HitTest = NavigatorModel.BB_HitTest
 
-
 # All imports dealing with EFS
 sys.path.append('C:\\hg\\tools_lag\\EFSUtils')
 import ExportFileUtils
 import AttributeDlg
 import BackgroundFunctionDlg
-import ScriptLoader
+# import ScriptLoader
 from DirectoryToken import *
 from ConfigFile import *
-import sys
+# import sys
 import FindNodeDlg
+import AddNodeDlg
+import ExportFileBusinessObject as efbo
+import TypeColors
 
 class NavigatorController:
    def __init__(self):
-      self.Config = ConfigFile('Config.txt')
-      self.efs = ExportFileUtils.ExportFileSet()
-
-
       # Setup view
       self.mainWindow = NavigatorFrame(None)
 
@@ -39,9 +37,12 @@ class NavigatorController:
       self.canvas.InitAll()
       self.canvas.Draw()
 
-      self.findDlg = FindNodeDlg.FindNodeDlg (self.canvas,self.efs)
-      # Setup model
+      # Setup model and efs
       self.rectModel = NavigatorModel.NavRect
+      self.Config = ConfigFile('Config.txt')
+      self.efs = ExportFileUtils.ExportFileSet()
+      # self.findDlg = FindNodeDlg.FindNodeDlg (self.canvas,self.efs)
+      self.addNodeDlg = AddNodeDlg.AddNodeDlg(self.canvas, self.efs)
 
       # Bind normal events
       self.mainWindow.Bind(wx.EVT_MENU, self.onExit, self.mainWindow.menuExit)
@@ -74,37 +75,10 @@ class NavigatorController:
 
       # @TODO: Remove this in the future, but for now populate the screen for prototyping
       self.enable()
-      # self.populateScreen()
 
    #--------------------------------------------------------------------------------------#
    # Initialization (not bindings)
    #--------------------------------------------------------------------------------------#
-   def populateScreen(self):
-
-      xy = (300, 200)
-      rect = NavRect('1', self.mainWindow.NavCanvas, 'Number 1', xy, (80, 35), 0, NavigatorModel.colors['BLUE'])
-      rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
-      rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
-      self.rects.append(rect)
-      rect.rect.PutInBackground()
-      rect.rect.Text.PutInBackground()
-      # Hardcode in the children, parents, revisions
-      self.fake_revisions = ['1.0', '1.1']
-      self.rects[rect.rect.Name].children = ['2', '3', '4', '5']
-      # self.rects[rect.rect.Name].parents = ['6', '7', '8']
-      self.rects[rect.rect.Name].revisions = {'1.0': self.fake_revisions, '1.1': self.fake_revisions, '1.2': self.fake_revisions} #@TODO: _revisions doesn't populate
-
-      for i in xrange(6, 10):
-         xy = random.randrange(0,600), random.randrange(0,600)
-         rect = NavRect(i, self.mainWindow.NavCanvas, 'Number ' + `i`, xy, (80, 35), 0, NavigatorModel.colors['BLUE'])
-         rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
-         rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
-         self.rects.append(rect)
-         rect.rect.PutInBackground()
-         rect.rect.Text.PutInBackground()
-
-      self.rects['6'].children = ['10', '11', '12']
-
    def show(self):
       self.mainWindow.Show()
 
@@ -120,24 +94,30 @@ class NavigatorController:
       self.canvas.Unbind(FloatCanvas.EVT_MOTION, self.onDrag)
       self.canvas.Unbind(FloatCanvas.EVT_LEFT_UP, self.onLUp)
 
+   def OpenFile (self, file):
+      self.efs.parseFiles (file)
    #--------------------------------------------------------------------------------------#
    # Normal Bindings
    #--------------------------------------------------------------------------------------#
    def onAddObject(self, event):
-      if (self.findDlg.ShowModal () == wx.ID_OK):
-         if (self.findDlg.ReturnBOs != None):
-            for bo in self.findDlg.ReturnBOs:
+      if (self.addNodeDlg.ShowModal () == wx.ID_OK):
+         if (self.addNodeDlg.ReturnBOs != None):
+            for bo in self.addNodeDlg.ReturnBOs:
                print bo
 
                xy = (random.randint(0, self.mainWindow.GetSize()[0]), random.randint(0, self.mainWindow.GetSize()[1]))
-               rect = NavRect(str(bo), self.mainWindow.NavCanvas, str(bo), xy, (80, 35), 0, NavigatorModel.colors['BLUE'])
+               self.boType = efbo.getTypeName(bo)
+               if self.boType in TypeColors.ObjColorDict:
+                  colorSet = TypeColors.ObjColorDict[self.boType]
+                  rect = NavRect(bo, self.mainWindow.NavCanvas, str(bo), xy, (80, 35), 0, colorSet)
+               else:
+                  rect = NavRect(bo, self.mainWindow.NavCanvas, str(bo), xy, (80, 35), 0, NavigatorModel.colors['WHITE'])
                rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
                rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
                self.rects.append(rect)
                rect.rect.PutInBackground()
                rect.rect.Text.PutInBackground()
-      self.draw()
-
+         self.draw()
 
    def onExit(self, event):
       self.mainWindow.Destroy()
@@ -154,7 +134,6 @@ class NavigatorController:
 
    def onOpen(self, event):
       dirtoken = DirectoryToken("EFS")
-      dir = dirtoken.get()
       dlg = wx.FileDialog(
             self.canvas, message="Opening an EFS...",
             defaultDir=os.getcwd(),
@@ -169,11 +148,6 @@ class NavigatorController:
          dlg = BackgroundFunctionDlg.BackgroundFunctionDlg (self.canvas,"Opening EFS",self.OpenFile, path)
          dlg.Go()
       dlg.Destroy()
-
-   def OpenFile (self, file):
-      print file
-      self.efs.parseFiles (file)
-      # self.canvas.SetTitle ("EFS Navigator - " + file)
 
    def onScroll(self, event):
       scrollFactor = event.GetWheelRotation()
@@ -194,12 +168,12 @@ class NavigatorController:
             self.popupID2 = wx.NewId()
             self.popupID3 = wx.NewId()
             self.popupID4 = wx.NewId()
-            self.canvas.Bind(wx.EVT_MENU, self.onExpandChildren, id=self.popupID1)
+            self.canvas.Bind(wx.EVT_MENU, self.onExpandRevisions, id=self.popupID1)
             self.canvas.Bind(wx.EVT_MENU, self.onAttributes, id=self.popupID2)
             self.canvas.Bind(wx.EVT_MENU, self.onDelete, id=self.popupID3)
             self.canvas.Bind(wx.EVT_MENU, self.onLock, id=self.popupID4)
          menu = wx.Menu()
-         menu.Append(self.popupID1, 'Expand')
+         menu.Append(self.popupID1, 'Expand Revisions')
          menu.Append(self.popupID2, 'Attributes/Properties')
          menu.Append(self.popupID3, 'Delete Selected')
          menu.Append(self.popupID4, 'Lock')
@@ -312,7 +286,7 @@ class NavigatorController:
    #--------------------------------------------------------------------------------------#
    # ContextMenu with Single Object Selected Bindings
    #--------------------------------------------------------------------------------------#
-   def onExpandChildren(self, event):
+   def onExpandRevisions(self, event):
       rectNum = self.selectedRects[0]
       self.selectedRects = []
       if not self.rects[rectNum]._childrenShown:
@@ -335,7 +309,9 @@ class NavigatorController:
    # TODO: Add third parameter for node and use the attribute dialog that is already written
    def onAttributes(self, event):
       print 'Show Attributes'
-      # dlg = AttributeDlg.AttributeDlg(self.canvas, node.GetBaseBOPtr ())
+      rectNum = self.selectedRects[0]
+      dlg = AttributeDlg.AttributeDlg(self.canvas, self.rects[rectNum].rect.Name)
+      dlg.Show()
 
    #--------------------------------------------------------------------------------------#
    # ContextMenu with Multiple Objects Selected Bindings
