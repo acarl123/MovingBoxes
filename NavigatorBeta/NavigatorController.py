@@ -43,7 +43,7 @@ class NavigatorController:
 
       # Bind normal canvas events
       self.canvas.Bind(wx.EVT_CONTEXT_MENU, self.onContextMenu)
-      self.canvas.Bind(wx.EVT_KEY_DOWN, self.onKeyEvents)
+      self.canvas.Bind(wx.EVT_KEY_DOWN, self.onKeyEvents) #TODO: fix it so these are actually binding
       self.canvas.Bind(wx.EVT_KEY_UP, self.onKeyEvents)
       self.canvas.Bind(wx.EVT_MIDDLE_DOWN, self.onMiddleDn)
       self.canvas.Bind(wx.EVT_MIDDLE_UP, self.onMiddleUp)
@@ -91,11 +91,6 @@ class NavigatorController:
       self.canvas.Unbind(FloatCanvas.EVT_MOTION, self.onDrag)
       self.canvas.Unbind(FloatCanvas.EVT_LEFT_UP, self.onLUp)
 
-   def OpenFile (self, file):
-      # Parse and populate the dictionary
-      self.efs.parseFiles (file, ignoreDanglingRefs=False, skipRels=False)
-      self.busObjDict = self.efs.getAllBusinessObjectsDict()
-
    def makeLegend(self):
       listCtrl = self.mainWindow.m_listCtrl1
       listCtrl.InsertColumn(0, 'Type', width=75)
@@ -107,6 +102,11 @@ class NavigatorController:
          item = listCtrl.GetItem(index)
          item.SetBackgroundColour(color)
          listCtrl.SetItem(item)
+
+   def OpenFile (self, file):
+      # Parse and populate the dictionary
+      self.efs.parseFiles (file, ignoreDanglingRefs=False, skipRels=False)
+      self.busObjDict = self.efs.getAllBusinessObjectsDict()
 
    #--------------------------------------------------------------------------------------#
    # Normal Canvas Bindings
@@ -286,8 +286,8 @@ class NavigatorController:
          if self.selectedRects:
             for bo in self.selectedRects:
                self.moveRect(self.rects[bo].rect, self.mouseRel)
-               for revisionRect in self.rects[bo]._revisionRects:
-                  self.moveRect(self.rects[bo]._revisionRects[revisionRect], self.mouseRel)
+               for revision in self.rects[bo]._revisionRects:
+                  self.moveRect(self.rects[bo]._revisionRects[revision], self.mouseRel)
                self.redrawArrows()
             self.canvas.Draw(False)
          else:
@@ -307,9 +307,9 @@ class NavigatorController:
       for bo in self.selectedRects:
          self.rects[bo].rect.PutInBackground()
          self.rects[bo].rect.Text.PutInBackground()
-         for revisionRect in self.rects[bo]._revisionRects:
-            self.rects[bo]._revisionRects[revisionRect].PutInBackground()
-            self.rects[bo]._revisionRects[revisionRect].Text.PutInBackground()
+         for revision in self.rects[bo]._revisionRects:
+            self.rects[bo]._revisionRects[revision].PutInBackground()
+            self.rects[bo]._revisionRects[revision].Text.PutInBackground()
       for arrow in self.allArrows:
          arrow.PutInBackground()
       self.draw()
@@ -321,14 +321,8 @@ class NavigatorController:
       bo = self.selectedRects[0] # TODO: For group selection we need to go through the entire selected rects
       if self.rects[bo]._revShown:
          self.rects[bo]._revShown = False
-         # for revision in efbo.getAllRevisions(bo, self.busObjDict):
-            # if revision == bo: continue
-            # if self.rects[revision]:
-            #    self.rects[revision].rect.UnBindAll()
-            #    self.canvas.RemoveObjects((self.rects[revision].rect, self.rects[revision].rect.Text))
-            #    del self.rects[revision]
-         for revisionRect in self.rects[bo]._revisionRects:
-            self.canvas.RemoveObjects([self.rects[bo]._revisionRects[revisionRect], self.rects[bo]._revisionRects[revisionRect].Text])
+         for revision in self.rects[bo]._revisionRects:
+            self.canvas.RemoveObjects([self.rects[bo]._revisionRects[revision], self.rects[bo]._revisionRects[revision].Text])
          self.rects[bo]._revisionRects = {}
       else:
          self.rects[bo]._revShown = True
@@ -337,16 +331,13 @@ class NavigatorController:
             self.boType = efbo.getTypeName(revision)
             if self.boType in TypeColors.ObjColorDict:
                colorSet = TypeColors.ObjColorDict[self.boType]
-               # rect = NavRect(revision, self.mainWindow.NavCanvas, '%s' % efbo.getRevision(revision), xy, (40, 17.5), 0, colorSet)  #TODO: eventually revs need to be selectable and remove hardcoded size
+               #TODO: eventually revs need to be selectable and remove hardcoded size
                rect = self.canvas.AddRectangle(xy, (40, 17.5), LineWidth=0, FillColor=colorSet, LineColor='WHITE')
             else:
-               # rect = NavRect(revision, self.mainWindow.NavCanvas, '%s' % efbo.getRevision(revision), xy, (40, 17.5), 0, NavigatorModel.colors['WHITE'])
                rect = self.canvas.AddRectangle(xy, (40, 17.5), LineWidth=0, FillColor=NavigatorModel.colors['WHITE'], LineColor='WHITE')
             rect.Name = '%s' % efbo.getRevision(revision)
             rect.Text = self.canvas.AddScaledText('%s' % efbo.getRevision(revision), (xy[0]+20, xy[1]+8.75), 7, Position = "cc")
-            # # TODO: Put in bindings maybe
-            # if not revision == bo:
-            #    self.rects.append(rect)
+            # TODO: Put in bindings maybe
             rect.PutInBackground()
             rect.Text.PutInBackground()
             self.rects[bo]._revisionRects[int(revision)] = rect
@@ -402,14 +393,10 @@ class NavigatorController:
             differencey = ypos1-ypos2
             self.moveRect(self.rects[bo].rect, (differencex, differencey))
             if self.rects[bo]._revShown:
-               # for revision in efbo.getAllRevisions(bo, self.busObjDict):
-               #    if self.rects[revision]:
-               #       self.moveRect(self.rects[revision].rect, (differencex, differencey))
-               #       index += self.rects[revision].rect.BoundingBox.Width
-               for revisionRect in self.rects[bo]._revisionRects:
-                  self.rects[bo]._revisionRects[revisionRect].moveRect(revisionRect, (differencex, differencey))
-                  index += revisionRect.BoundingBox.Width
-            index+= self.rects[bo].rect.BoundingBox.Width + 5 #TODO: allow the user to change this hardcoded 5
+               for revision in self.rects[bo]._revisionRects:
+                  self.moveRect(self.rects[bo]._revisionRects[revision], (differencex, differencey))
+                  index += self.rects[bo]._revisionRects[revision].BoundingBox.Width
+            index += self.rects[bo].rect.BoundingBox.Width + 5 #TODO: allow the user to change this hardcoded 5
          self.draw()
 
    def onArrangeVertically(self, event):
@@ -426,11 +413,8 @@ class NavigatorController:
             differencey = ypos1-ypos2+index
             self.moveRect(self.rects[bo].rect, (differencex, differencey))
             if self.rects[bo]._revShown:
-               # for revision in efbo.getAllRevisions(bo, self.busObjDict):
-               #    if self.rects[revision]:
-               #       self.moveRect(self.rects[revision].rect, (differencex, differencey))
-               for revisionRect in self.rects[bo]._revisionRects:
-                  self.rects[bo]._revisionRects[revisionRect].moveRect(revisionRect, (differencex, differencey))
+               for revision in self.rects[bo]._revisionRects:
+                  self.moveRect(self.rects[bo]._revisionRects[revision], (differencex, differencey))
             index -= self.rects[bo].rect.BoundingBox.Height + 10
          self.draw()
 
@@ -439,13 +423,8 @@ class NavigatorController:
       for bo in self.selectedRects:
          self.rects[bo].rect.UnBindAll()
          if self.rects[bo]._revShown:
-            # for revision in efbo.getAllRevisions(bo, self.busObjDict):
-            #    if self.rects[revision]: # if the revision is there
-            #       self.rects[revision].rect.UnBindAll()
-            #       self.canvas.RemoveObjects((self.rects[revision].rect, self.rects[revision].rect.Text))
-            #       del self.rects[revision]
-            for revisionRect in self.rects[bo]._revisionRects:
-               self.canvas.RemoveObjects([self.rects[bo]._revisionRects[revisionRect], self.rects[bo]._revisionRects[revisionRect].Text])
+            for revision in self.rects[bo]._revisionRects:
+               self.canvas.RemoveObjects([self.rects[bo]._revisionRects[revision], self.rects[bo]._revisionRects[revision].Text])
             self.rects[bo]._revisionRects = {}
          self.canvas.RemoveObjects((self.rects[bo].rect, self.rects[bo].rect.Text))
          del self.rects[bo]
@@ -467,26 +446,18 @@ class NavigatorController:
             for bo in self.selectedRects:
                self.rects[bo].rect.SetLineColor(NavigatorModel.colors['BLACK'])
                if self.rects[bo]._revShown:
-                  # for revision in efbo.getAllRevisions(bo, self.busObjDict):
-                  #    if self.rects[revision]:
-                  #       self.rects[revision].rect.SetLineColor(NavigatorModel.colors['BLACK'])
-                  for revisionRect in self.rects[bo]._revisionRects:
-                     self.rects[bo]._revisionRects[revisionRect].SetLineColor(NavigatorModel.colors['BLACK'])
+                  for revision in self.rects[bo]._revisionRects:
+                     self.rects[bo]._revisionRects[revision].SetLineColor(NavigatorModel.colors['BLACK'])
             self.selectedRects = []
             self.selectedRects.append(object.Name)
       object.PutInForeground() # clicked rect pops to top
       object.Text.PutInForeground()
       object.SetLineColor(NavigatorModel.colors['WHITE'])
       if self.rects[object.Name]._revShown:
-         # for revision in efbo.getAllRevisions(object.Name, self.busObjDict):
-         #    if self.rects[revision]:
-         #       self.rects[revision].rect.PutInForeground()
-         #       self.rects[revision].rect.Text.PutInForeground()
-         #       self.rects[revision].rect.SetLineColor(NavigatorModel.colors['WHITE'])
-         for revisionRect in self.rects[object.Name]._revisionRects:
-            self.rects[object.Name]._revisionRects[revisionRect].PutInForeground()
-            self.rects[object.Name]._revisionRects[revisionRect].Text.PutInForeground()
-            self.rects[object.Name]._revisionRects[revisionRect].SetLineColor(NavigatorModel.colors['WHITE'])
+         for revision in self.rects[object.Name]._revisionRects:
+            self.rects[object.Name]._revisionRects[revision].PutInForeground()
+            self.rects[object.Name]._revisionRects[revision].Text.PutInForeground()
+            self.rects[object.Name]._revisionRects[revision].SetLineColor(NavigatorModel.colors['WHITE'])
       self.canvas.Draw()
 
    def onRectLeftDClick(self, object, event):
@@ -562,17 +533,15 @@ class NavigatorController:
       for bo in self.rects:
          if x1 <= self.rects[bo].rect.BoundingBox.Center[0] <= x2 and \
             y1 <= self.rects[bo].rect.BoundingBox.Center[1] <= y2:
-
             self.selectedRects.append(bo.name)
             self.rects[bo].rect.PutInForeground() # clicked rect pops to top
             self.rects[bo].rect.Text.PutInForeground()
             self.rects[bo].rect.SetLineColor(NavigatorModel.colors['WHITE'])
-
             if self.rects[bo]._revShown:
-               for revisionRect in self.rects[bo]._revisionRects:
-                  self.rects[bo]._revisionRects[revisionRect].PutInForeground()
-                  self.rects[bo]._revisionRects[revisionRect].Text.PutInForeground()
-                  self.rects[bo]._revisionRects[revisionRect].SetLineColor(NavigatorModel.colors['WHITE'])
+               for revision in self.rects[bo]._revisionRects:
+                  self.rects[bo]._revisionRects[revision].PutInForeground()
+                  self.rects[bo]._revisionRects[revision].Text.PutInForeground()
+                  self.rects[bo]._revisionRects[revision].SetLineColor(NavigatorModel.colors['WHITE'])
       self.canvas.Draw()
 
    def moveRect(self, rect, (x,y)):
@@ -593,15 +562,15 @@ class NavigatorController:
                if efrel.getTypeName(rel) == MDXUtils.REL_AD: continue
                toBo = efrel.getTo(rel)
                if self.rects[toBo]: # If the object is on the screen still
-                  if not self.rects[bo]._revShown and not self.rects[toBo]._revShown:
+                  if not self.rects[bo]._revShown and not self.rects[toBo]._revShown: #both revs collapsed
                      self.drawArrows(self.rects[bo].rect, self.rects[toBo].rect)
-                  elif self.rects[bo]._revShown and not self.rects[toBo]._revShown:
+                  elif self.rects[bo]._revShown and not self.rects[toBo]._revShown: # one collapsed
                      self.drawArrows(self.rects[bo]._revisionRects[revision], self.rects[toBo].rect)
-                  # elif not self.rects[bo]._revShown and self.rects[toBo]._revShown:
-                  #    for revision in efbo.getAllRevisions(revision, self.busObjDict):
-                  #       self.drawArrows(self.rects[bo], self.rects[toBo]._revisionRects[revision])
-                  # else:
-                  #    for rev in efbo.getAllRevisions(revision, self.busObjDict):
-                  #       self.drawArrows(self.rects[bo]._revisionRects[revision], self.rects[toBo]._revisionRects[rev])
+                  elif not self.rects[bo]._revShown and self.rects[toBo]._revShown: # one collapsed
+                     for revision in efbo.getAllRevisions(toBo, self.busObjDict):
+                        self.drawArrows(self.rects[bo].rect, self.rects[toBo]._revisionRects[revision])
+                  else: # both not collapsed
+                     for rev in efbo.getAllRevisions(toBo, self.busObjDict):
+                        self.drawArrows(self.rects[bo]._revisionRects[revision], self.rects[toBo]._revisionRects[rev])
 
 
