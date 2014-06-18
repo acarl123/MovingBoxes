@@ -91,9 +91,10 @@ class NavRect:
       self.text = canvas.Canvas.AddScaledText(text, canvas.Canvas.PixelToWorld((xy[0] + wh[0]/2/canvas.scale, xy[1] - wh[1]/2/canvas.scale)), 7, Position="cc")
       self.rect.Text = self.text
       self._name = name
-      self._bo = None
+      # self._bo = None
       self._revisions = {}
       self._revisionRects = []
+      self._revisionRects = {}
       self._parents = []
       self._children = []
 
@@ -137,7 +138,7 @@ class RectDict(object):
          else:
             print 'Key Search for type %s not supported' % item
       except KeyError:
-         print item
+         print 'Key Error for: ' + str(item)
 
    def __setitem__(self, key, value):
       if isinstance(key, (int, long)):
