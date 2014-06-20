@@ -145,7 +145,8 @@ class RectDict(object):
          else:
             print 'Key Search for type %s not supported' % item
       except KeyError:
-         print 'Key Error for: ' + str(item)
+         pass
+         # print 'Key Error for: ' + str(item)
 
    def __setitem__(self, key, value):
       if isinstance(key, (int, long)):

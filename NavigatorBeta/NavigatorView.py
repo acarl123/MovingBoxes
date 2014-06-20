@@ -19,7 +19,7 @@ from NavigatorFloatCanvas import NavigatorFloatCanvas
 class NavigatorFrame ( wx.Frame ):
 	
 	def __init__( self, parent ):
-		wx.Frame.__init__ ( self, parent, id = wx.ID_ANY, title = u"EFS Navigator", pos = wx.DefaultPosition, size = wx.Size( 800,600 ), style = wx.DEFAULT_FRAME_STYLE|wx.TAB_TRAVERSAL )
+		wx.Frame.__init__ ( self, parent, id = wx.ID_ANY, title = u"EFS Navigator", pos = wx.DefaultPosition, size = wx.Size( 1100, 900 ), style = wx.DEFAULT_FRAME_STYLE|wx.TAB_TRAVERSAL )
 		
 		self.SetSizeHintsSz( wx.DefaultSize, wx.DefaultSize )
 		self.SetForegroundColour( wx.SystemSettings.GetColour( wx.SYS_COLOUR_BTNTEXT ) )
@@ -30,30 +30,22 @@ class NavigatorFrame ( wx.Frame ):
 		self.m_splitter1.Bind( wx.EVT_IDLE, self.m_splitter1OnIdle )
 		self.m_splitter1.SetMinimumPaneSize( 10 )
 		
-		# self.m_panel1 = wx.Panel( self.m_splitter1, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.TAB_TRAVERSAL )
-		# bSizer3 = wx.BoxSizer( wx.VERTICAL )
-		#
-		# self.NavCanvas = NavigatorFloatCanvas(self, Debug=0, BackgroundColor=(173, 173, 173))
-		# bSizer3.Add( self.NavCanvas, 1, wx.ALL|wx.EXPAND, 5 )
-		
 		self.NavCanvas = NavigatorFloatCanvas(self.m_splitter1, Debug=0, BackgroundColor=(173, 173, 173))
-		# self.NavCanvas.SetSizer( bSizer3 )
 		self.NavCanvas.Layout()
-		# bSizer3.Fit( self.m_panel1 )
+
 		self.m_panel2 = wx.Panel( self.m_splitter1, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.TAB_TRAVERSAL )
 		bSizer2 = wx.BoxSizer( wx.VERTICAL )
 		
 		self.m_listCtrl1 = wx.ListCtrl(self.m_panel2, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LC_REPORT )
 		bSizer2.Add( self.m_listCtrl1, 1, wx.ALL|wx.EXPAND, 5 )
-		
-		
+
 		self.m_panel2.SetSizer( bSizer2 )
 		self.m_panel2.Layout()
 		bSizer2.Fit( self.m_panel2 )
-		self.m_splitter1.SplitVertically( self.NavCanvas, self.m_panel2, 700 )
+
+		self.m_splitter1.SplitVertically( self.NavCanvas, self.m_panel2, 900 )
 		bSizer1.Add( self.m_splitter1, 1, wx.EXPAND, 5 )
-		
-		
+
 		self.SetSizer( bSizer1 )
 		self.Layout()
 		self.m_menubar1 = wx.MenuBar( 0 )
@@ -91,12 +83,12 @@ class NavigatorFrame ( wx.Frame ):
 		self.m_menubar1.Append( self.editMenu, u"Edit" ) 
 		
 		self.viewMenu = wx.Menu()
-		self.showLegendMenuItem = wx.MenuItem( self.viewMenu, wx.ID_ANY, u"Show Legend", wx.EmptyString, wx.ITEM_NORMAL )
-		self.viewMenu.AppendItem( self.showLegendMenuItem )
-		
 		self.hideLegendMenuItem = wx.MenuItem( self.viewMenu, wx.ID_ANY, u"Hide Legend", wx.EmptyString, wx.ITEM_NORMAL )
 		self.viewMenu.AppendItem( self.hideLegendMenuItem )
-		
+
+		self.showLegendMenuItem = wx.MenuItem( self.viewMenu, wx.ID_ANY, u"Show Legend", wx.EmptyString, wx.ITEM_NORMAL )
+		self.viewMenu.AppendItem( self.showLegendMenuItem )
+
 		self.latestRevisionMenuItem = wx.MenuItem( self.viewMenu, wx.ID_ANY, u"Latest Revision Mode", wx.EmptyString, wx.ITEM_NORMAL )
 		self.viewMenu.AppendItem( self.latestRevisionMenuItem )
 		
@@ -118,15 +110,14 @@ class NavigatorFrame ( wx.Frame ):
 		self.m_menubar1.Append( self.helpMenu, u"Help" ) 
 		
 		self.SetMenuBar( self.m_menubar1 )
-		
-		
+
 		self.Centre( wx.BOTH )
 	
 	def __del__( self ):
 		pass
 	
 	def m_splitter1OnIdle( self, event ):
-		self.m_splitter1.SetSashPosition( 700 )
+		self.m_splitter1.SetSashPosition( 900 )
 		self.m_splitter1.Unbind( wx.EVT_IDLE )
 	
 

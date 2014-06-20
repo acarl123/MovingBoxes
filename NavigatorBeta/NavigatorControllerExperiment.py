@@ -1,15 +1,13 @@
-from wx._controls import LIST_AUTOSIZE
-
-__author__ = 'mwj'
 import os, sys
 sys.path.append('C:\\hg\\tools_lag\\EFSUtils')
 from collections import deque
 from ConfigFile import *
 from DirectoryToken import *
+from NavigatorFloatCanvas import NavGuiMove
 from NavigatorModel import NavRect, RectDict
 from NavigatorView import NavigatorFrame
+from wx._controls import LIST_AUTOSIZE
 from wx.lib.floatcanvas import FloatCanvas, GUIMode
-from NavigatorFloatCanvas import NavGuiMove
 import AddNodeDlg
 import AttributeDlg
 import BackgroundFunctionDlg
@@ -47,44 +45,45 @@ class NavigatorController:
       self.canvas.Bind(wx.EVT_CONTEXT_MENU, self.onContextMenu)
       self.canvas.Bind(wx.EVT_KEY_DOWN, self.onKeyEvents) #TODO: fix it so these are actually binding
       self.canvas.Bind(wx.EVT_KEY_UP, self.onKeyEvents)
+      self.canvas.Bind(wx.EVT_LEAVE_WINDOW, self.onLeaveWindow)
       self.canvas.Bind(wx.EVT_MIDDLE_DOWN, self.onMiddleDn)
       self.canvas.Bind(wx.EVT_MIDDLE_UP, self.onMiddleUp)
+
       # Bind normal window events
       self.mainWindow.Bind(wx.EVT_MENU, self.onAddObject, self.mainWindow.menuAddObject)
       self.mainWindow.Bind(wx.EVT_MENU, self.onExit, self.mainWindow.menuExit)
       self.mainWindow.Bind(wx.EVT_MENU, self.onExport, self.mainWindow.menuExport)
+      self.mainWindow.Bind(wx.EVT_MENU, self.onHideLegend, self.mainWindow.hideLegendMenuItem)
       self.mainWindow.Bind(wx.EVT_MENU, self.onOpen, self.mainWindow.menuOpen)
       self.mainWindow.Bind(wx.EVT_MENU, self.onSave, self.mainWindow.menuSave)
       self.mainWindow.Bind(wx.EVT_MOUSEWHEEL, self.onScroll)
+      self.mainWindow.Bind(wx.EVT_MENU, self.onShowLegend, self.mainWindow.showLegendMenuItem)
 
       # Initialize member variables
-      self.rects = RectDict()
-      self.revisionRects = {} # Used for rectangles that are drawn on the canvas only
-      self.selectedRects = []
+      self.allArrows = []
+      self.arrowCount = 0
+      self.ctrl_down = False
+      self.enable()
       self.expandingRects = []
       self.mousePositions = deque([])
       self.mouseRel = 0, 0
-      self.ctrl_down = False
-      self.allArrows = []
-      self.arrowCount = 0
-      self.enable()
+      self.rects = RectDict()
+      self.selectedRects = []
 
       # Initial bounding box member variables
       self.Drawing = False
       self.RBRect = None
       self.StartPointWorld = None
-      self.Tol = 5
+      self.Tol = 5 # tolerance for bounding box
 
       # Grouping member variables
-      self.groups = {}
       self.groupBox = None
+      self.groups = {}
+      self.groupNumber = 0
 
    #--------------------------------------------------------------------------------------#
-   # Initialization (not bindings)
+   # Initialization (not bindings) TODO: Need a better name for this
    #--------------------------------------------------------------------------------------#
-   def show(self):
-      self.mainWindow.Show()
-
    def enable(self):
       # Bind events to FloatCanvas
       self.canvas.Bind(FloatCanvas.EVT_LEFT_DOWN, self.onClick)
@@ -99,9 +98,7 @@ class NavigatorController:
 
    def makeLegend(self):
       listCtrl = self.mainWindow.m_listCtrl1
-      listCtrl.InsertColumn(0, 'Type', width=500)
-      # listCtrl.InsertColumn(1, 'Color',) # TODO: use list autowidth mixin
-
+      listCtrl.InsertColumn(0, 'Type', width=self.mainWindow.GetSize()[1]) # TODO: use list autowidth mixin
       for type, color in TypeColors.ObjColorDict.iteritems():
          index = listCtrl.InsertStringItem(sys.maxint, type)
          listCtrl.SetStringItem(index, 1, ' ')
@@ -114,72 +111,12 @@ class NavigatorController:
       self.efs.parseFiles (file, ignoreDanglingRefs=False, skipRels=False)
       self.busObjDict = self.efs.getAllBusinessObjectsDict()
 
+   def show(self):
+      self.mainWindow.Show()
+
    #--------------------------------------------------------------------------------------#
    # Normal Canvas Bindings
    #--------------------------------------------------------------------------------------#
-   def onKeyEvents(self, event):
-      self.ctrl_down = event.ControlDown()
-      if event.GetKeyCode() == wx.WXK_DELETE:
-         self.onDelete(event)
-      if self.ctrl_down and event.GetKeyCode() == 71: # Ctrl + g
-         self.onGroup(event)
-      event.Skip()
-
-   def onMiddleDn(self, event):
-      mode = NavGuiMove(event, self.canvas)
-      self.canvas.SetMode(mode)
-      self.mainWindow.NavCanvas.panning = True
-
-      mode.Canvas.SetCursor(mode.GrabCursor)
-      mode.StartMove = numpy.array(event.GetPosition())
-      mode.MidMove = mode.StartMove
-      mode.PrevMoveXY = (0, 0)
-
-   def onMiddleUp(self, event):
-      mode = GUIMode.GUIMouse(self.canvas)
-      self.canvas.SetMode(mode)
-      self.mainWindow.NavCanvas.panning = False
-
-   #--------------------------------------------------------------------------------------#
-   # Normal Window Bindings
-   #--------------------------------------------------------------------------------------#
-   # TODO: Need to eventually redo Matt Fuller's code but this addNodeDlg works for now
-   def onAddObject(self, event):
-      addNodeDlg = AddNodeDlg.AddNodeDlg(self.canvas, self.efs)
-      self.clearSelectedRects()
-      if (addNodeDlg.ShowModal () == wx.ID_OK):
-         if (addNodeDlg.ReturnBOs != None):
-            for bo in addNodeDlg.ReturnBOs:
-               if self.rects[bo]: continue # Check if this bo is already on the canvas
-               xy = (random.randint(0, self.mainWindow.GetSize()[0]), random.randint(0, self.mainWindow.GetSize()[1]))
-               self.boType = efbo.getTypeName(bo)
-               if self.boType in TypeColors.ObjColorDict:
-                  colorSet = TypeColors.ObjColorDict[self.boType]
-                  rect = NavRect(bo, self.mainWindow.NavCanvas, '%s' % efbo.getName(bo), xy, 0, colorSet, 'WHITE')
-               else:
-                  rect = NavRect(bo, self.mainWindow.NavCanvas, '%s' % efbo.getName(bo), xy, 0, 'WHITE', 'WHITE')
-               rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
-               rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
-               self.rects.append(rect)
-               self.selectedRects.append(bo)
-               rect.rect.PutInForeground()
-               rect.rect.Text.PutInForeground()
-            addNodeDlg.Destroy()
-      self.draw()
-
-   def onExit(self, event):
-      self.mainWindow.Destroy()
-      exit()
-
-   def onExport(self, event):
-      dlg = wx.FileDialog(self.canvas, message="Save file as ...", defaultDir=os.getcwd(),
-                          defaultFile="", wildcard="*.png", style=wx.SAVE)
-      if dlg.ShowModal() == wx.ID_OK:
-         path = dlg.GetPath()
-         if not(path[-4:].lower() == ".png"):
-            path = path+".png"
-         self.canvas.SaveAsImage(path)
-
    def onContextMenu(self, event):
       if len(self.selectedRects) == 0:
          #@TODO: add context menu for no rects selected
@@ -194,6 +131,7 @@ class NavigatorController:
             self.popupID10 = wx.NewId()
             self.popupID15 = wx.NewId()
             self.popupID16 = wx.NewId()
+            self.popupID17 = wx.NewId()
             self.canvas.Bind(wx.EVT_MENU, self.onExpandRevisions, id=self.popupID1)
             self.canvas.Bind(wx.EVT_MENU, self.onExpandRevisions, id=self.popupID15)
             self.canvas.Bind(wx.EVT_MENU, self.onCollapseRevisions, id=self.popupID16)
@@ -202,6 +140,7 @@ class NavigatorController:
             self.canvas.Bind(wx.EVT_MENU, self.onLock, id=self.popupID4)
             self.canvas.Bind(wx.EVT_MENU, self.onExpandOutgoing, id=self.popupID5)
             self.canvas.Bind(wx.EVT_MENU, self.onExpandIncoming, id=self.popupID10)
+            self.canvas.Bind(wx.EVT_MENU, self.onExpandOutgoing, id=self.popupID17)
          menu = wx.Menu()
          submenu = wx.Menu()
          submenu.Append(self.popupID15, 'Expand Revisions')
@@ -210,8 +149,10 @@ class NavigatorController:
          menu.Append(self.popupID2, 'Attributes/Properties')
          menu.Append(self.popupID3, 'Delete Selected')
          menu.Append(self.popupID4, 'Lock')
-         menu.Append(self.popupID5, 'Expand Outgoing')
-         menu.Append(self.popupID10, 'Expand Incoming')
+         submenu = wx.Menu()
+         submenu.Append(self.popupID5, 'Expand Children')
+         submenu.Append(self.popupID10, 'Expand Where Used')
+         menu.AppendMenu(self.popupID17, 'Expand', submenu)
          self.canvas.PopupMenu(menu)
          menu.Destroy()
          return
@@ -248,6 +189,77 @@ class NavigatorController:
          self.canvas.PopupMenu(menu)
          menu.Destroy()
 
+   def onKeyEvents(self, event):
+      self.ctrl_down = event.ControlDown()
+      if event.GetKeyCode() == wx.WXK_DELETE:
+         self.onDelete(event)
+      if self.ctrl_down and event.GetKeyCode() == 71: # Ctrl + g
+         self.onGroup(event)
+      event.Skip()
+
+   def onLeaveWindow(self, event):
+      print 'Leaving Window'
+      event.Skip()
+
+   def onMiddleDn(self, event):
+      mode = NavGuiMove(event, self.canvas)
+      self.canvas.SetMode(mode)
+      self.mainWindow.NavCanvas.panning = True
+
+      mode.Canvas.SetCursor(mode.GrabCursor)
+      mode.StartMove = numpy.array(event.GetPosition())
+      mode.MidMove = mode.StartMove
+      mode.PrevMoveXY = (0, 0)
+
+   def onMiddleUp(self, event):
+      mode = GUIMode.GUIMouse(self.canvas)
+      self.canvas.SetMode(mode)
+      self.mainWindow.NavCanvas.panning = False
+
+   #--------------------------------------------------------------------------------------#
+   # Normal Window Bindings
+   #--------------------------------------------------------------------------------------#
+   # TODO: Need to eventually redo Matt Fuller's code but this addNodeDlg works for now
+   def onAddObject(self, event):
+      addNodeDlg = AddNodeDlg.AddNodeDlg(self.canvas, self.efs)
+      self.clearSelectedRects()
+      if (addNodeDlg.ShowModal () == wx.ID_OK):
+         if (addNodeDlg.ReturnBOs != None):
+            for bo in addNodeDlg.ReturnBOs:
+               if self.rects[bo]: continue # Check if this bo is already on the canvas
+               xy = (random.randint(0, self.mainWindow.GetSize()[0]), random.randint(0, self.mainWindow.GetSize()[1])) #TODO: Come up with a good way to populate the screen
+               self.boType = efbo.getTypeName(bo)
+               if self.boType in TypeColors.ObjColorDict:
+                  colorSet = TypeColors.ObjColorDict[self.boType]
+                  rect = NavRect(bo, self.mainWindow.NavCanvas, '%s' % efbo.getName(bo), xy, 0, colorSet, 'WHITE')
+               else:
+                  rect = NavRect(bo, self.mainWindow.NavCanvas, '%s' % efbo.getName(bo), xy, 0, 'WHITE', 'WHITE')
+               rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event)) # You can bind to the hit event of rectangle objects
+               rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
+               self.rects.append(rect)
+               self.selectedRects.append(bo)
+               rect.rect.PutInForeground()
+               rect.rect.Text.PutInForeground()
+            addNodeDlg.Destroy()
+      self.draw()
+
+   def onExit(self, event):
+      self.mainWindow.Destroy()
+      exit()
+
+   def onExport(self, event):
+      dlg = wx.FileDialog(self.canvas, message="Save file as ...", defaultDir=os.getcwd(),
+                          defaultFile="", wildcard="*.png", style=wx.SAVE)
+      if dlg.ShowModal() == wx.ID_OK:
+         path = dlg.GetPath()
+         if not(path[-4:].lower() == ".png"):
+            path = path+".png"
+         self.canvas.SaveAsImage(path)
+
+   def onHideLegend(self, event):
+      if self.mainWindow.m_splitter1.IsSplit():
+         self.mainWindow.m_splitter1.Unsplit()
+
    def onOpen(self, event):
       dlg = wx.FileDialog(
             self.canvas, message="Opening an EFS...",
@@ -274,6 +286,12 @@ class NavigatorController:
          scrollFactor = 2
       self.mainWindow.NavCanvas.scale /= scrollFactor
       self.canvas.Zoom(scrollFactor, event.GetPositionTuple(), 'pixel')
+
+   def onShowLegend(self, event):
+      if not self.mainWindow.m_splitter1.IsSplit():
+         leftWindow = self.mainWindow.NavCanvas
+         rightWindow = self.mainWindow.m_panel2
+         self.mainWindow.m_splitter1.SplitVertically(leftWindow, rightWindow, 900)
 
    #--------------------------------------------------------------------------------------#
    # FloatCanvas Bindings
