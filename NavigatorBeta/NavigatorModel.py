@@ -86,9 +86,16 @@ class NavRect:
    def name(self, value):
       self._name = value
 
-   def __init__(self, name, canvas, text, xy, wh, LineWidth, Fillcolor):
-      self.rect = canvas.Canvas.AddRectangle(canvas.Canvas.PixelToWorld(xy), wh, LineWidth=LineWidth, FillColor=Fillcolor)
-      self.text = canvas.Canvas.AddScaledText(text, canvas.Canvas.PixelToWorld((xy[0] + wh[0]/2/canvas.scale, xy[1] - wh[1]/2/canvas.scale)), 7, Position="cc")
+   def __init__(self, name, canvas, text, xy, LineWidth, FillColor, LineColor):
+      # self.rect = canvas.Canvas.AddRectangle(canvas.Canvas.PixelToWorld(xy), wh, LineWidth=LineWidth, FillColor=Fillcolor, LineColor=LineColor)
+      # self.text = canvas.Canvas.AddScaledText(text, canvas.Canvas.PixelToWorld((xy[0] + wh[0]/2/canvas.scale, xy[1] - wh[1]/2/canvas.scale)),
+      #                                         Size=12, Family=wx.ROMAN, Weight=wx.BOLD)
+      self.text = canvas.Canvas.AddScaledText(text, canvas.Canvas.PixelToWorld(xy),
+                                              Size=12, Family=wx.ROMAN, Weight=wx.BOLD)
+      wh = self.text.BoundingBox.Width, self.text.BoundingBox.Height
+      self.rect = canvas.Canvas.AddRectangle(canvas.Canvas.PixelToWorld((xy[0], xy[1]+wh[1]/canvas.scale)),
+                                             wh, LineWidth=LineWidth, FillColor=FillColor, LineColor=LineColor)
+
       self.rect.Text = self.text
       self._name = name
       # self._bo = None

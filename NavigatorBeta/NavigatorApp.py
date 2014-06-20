@@ -2,6 +2,7 @@ import sys; sys.path.append('C:\\hg\\tools_lag\\EFSUtils')
 import wx
 from NavigatorCollisionDetection import NavigatorController
 from NavigatorController import NavigatorController
+from NavigatorControllerExperiment import NavigatorController
 
 def _main():
    app = wx.App(None)

@@ -1,3 +1,6 @@
+from wx._controls import LIST_AUTOSIZE
+
+__author__ = 'mwj'
 import os, sys
 sys.path.append('C:\\hg\\tools_lag\\EFSUtils')
 from collections import deque
@@ -74,6 +77,7 @@ class NavigatorController:
 
       # Grouping member variables
       self.groups = {}
+      self.groupBox = None
 
    #--------------------------------------------------------------------------------------#
    # Initialization (not bindings)
@@ -95,8 +99,8 @@ class NavigatorController:
 
    def makeLegend(self):
       listCtrl = self.mainWindow.m_listCtrl1
-      listCtrl.InsertColumn(0, 'Type', width=75)
-      listCtrl.InsertColumn(1, 'Color',) # TODO: use list autowidth mixin
+      listCtrl.InsertColumn(0, 'Type', width=500)
+      # listCtrl.InsertColumn(1, 'Color',) # TODO: use list autowidth mixin
 
       for type, color in TypeColors.ObjColorDict.iteritems():
          index = listCtrl.InsertStringItem(sys.maxint, type)
@@ -161,7 +165,7 @@ class NavigatorController:
                rect.rect.PutInForeground()
                rect.rect.Text.PutInForeground()
             addNodeDlg.Destroy()
-      self.canvas.Draw()
+      self.draw()
 
    def onExit(self, event):
       self.mainWindow.Destroy()
@@ -188,14 +192,21 @@ class NavigatorController:
             self.popupID4 = wx.NewId()
             self.popupID5 = wx.NewId()
             self.popupID10 = wx.NewId()
+            self.popupID15 = wx.NewId()
+            self.popupID16 = wx.NewId()
             self.canvas.Bind(wx.EVT_MENU, self.onExpandRevisions, id=self.popupID1)
+            self.canvas.Bind(wx.EVT_MENU, self.onExpandRevisions, id=self.popupID15)
+            self.canvas.Bind(wx.EVT_MENU, self.onCollapseRevisions, id=self.popupID16)
             self.canvas.Bind(wx.EVT_MENU, self.onAttributes, id=self.popupID2)
             self.canvas.Bind(wx.EVT_MENU, self.onDelete, id=self.popupID3)
             self.canvas.Bind(wx.EVT_MENU, self.onLock, id=self.popupID4)
             self.canvas.Bind(wx.EVT_MENU, self.onExpandOutgoing, id=self.popupID5)
             self.canvas.Bind(wx.EVT_MENU, self.onExpandIncoming, id=self.popupID10)
          menu = wx.Menu()
-         menu.Append(self.popupID1, 'Expand Revisions')
+         submenu = wx.Menu()
+         submenu.Append(self.popupID15, 'Expand Revisions')
+         submenu.Append(self.popupID16, 'Collapse Revisions')
+         menu.AppendMenu(self.popupID1, 'Revisions', submenu)
          menu.Append(self.popupID2, 'Attributes/Properties')
          menu.Append(self.popupID3, 'Delete Selected')
          menu.Append(self.popupID4, 'Lock')
@@ -208,18 +219,32 @@ class NavigatorController:
       if len(self.selectedRects) > 1:
          if not hasattr(self, 'popupID6'):
             self.popupID6 = wx.NewId()
+            self.popupID14 = wx.NewId()
             self.popupID7 = wx.NewId()
             self.popupID8 = wx.NewId()
             self.popupID9 = wx.NewId()
+            self.popupID11 = wx.NewId()
+            self.popupID12 = wx.NewId()
+            self.popupID13 = wx.NewId()
             self.canvas.Bind(wx.EVT_MENU, self.onArrangeHorizontally, id=self.popupID6)
+            self.canvas.Bind(wx.EVT_MENU, self.onArrangeHorizontally, id=self.popupID14)
             self.canvas.Bind(wx.EVT_MENU, self.onArrangeVertically, id=self.popupID7)
             self.canvas.Bind(wx.EVT_MENU, self.onDelete, id=self.popupID8)
             self.canvas.Bind(wx.EVT_MENU, self.onLock, id=self.popupID9)
+            self.canvas.Bind(wx.EVT_MENU, self.onGroup, id=self.popupID11)
+            self.canvas.Bind(wx.EVT_MENU, self.onGroup, id=self.popupID12)
+            self.canvas.Bind(wx.EVT_MENU, self.onUngroup, id=self.popupID13)
+         submenu = wx.Menu()
+         submenu.Append(self.popupID14, 'Arrange Horizontally')
+         submenu.Append(self.popupID7, 'Arrange Vertically')
          menu = wx.Menu()
-         menu.Append(self.popupID6, 'Arrange Horizontally')
-         menu.Append(self.popupID7, 'Arrange Vertically')
+         menu.AppendMenu(self.popupID6, 'Arrange', submenu)
+         submenu = wx.Menu()
+         submenu.Append(self.popupID12, 'Group')
+         submenu.Append(self.popupID13, 'Ungroup')
          menu.Append(self.popupID8, 'Delete Selected')
          menu.Append(self.popupID9, 'Lock')
+         menu.AppendMenu(self.popupID11, 'Group', submenu)
          self.canvas.PopupMenu(menu)
          menu.Destroy()
 
@@ -311,29 +336,23 @@ class NavigatorController:
             wx.CallAfter(self.drawBandBox, (self.StartPointWorld, WH))
          self.RBRect = None
          self.StartPointWorld = None
-
-      # Set all selected rects back to background
-      # for bo in self.selectedRects:
-      #    self.rects[bo].rect.PutInBackground()
-      #    self.rects[bo].rect.Text.PutInBackground()
-      #    for revision in self.rects[bo]._revisionRects:
-      #       self.rects[bo]._revisionRects[revision].PutInBackground()
-      #       self.rects[bo]._revisionRects[revision].Text.PutInBackground()
-      # for arrow in self.allArrows:
-      #    arrow.PutInBackground()
       self.draw()
 
    #--------------------------------------------------------------------------------------#
    # ContextMenu with Single Object Selected Bindings
    #--------------------------------------------------------------------------------------#
-   def onExpandRevisions(self, event):
+   def onCollapseRevisions(self, event):
       bo = self.selectedRects[0] # TODO: For group selection we need to go through the entire selected rects
       if self.rects[bo]._revShown:
          self.rects[bo]._revShown = False
          for revision in self.rects[bo]._revisionRects:
             self.canvas.RemoveObjects([self.rects[bo]._revisionRects[revision], self.rects[bo]._revisionRects[revision].Text])
          self.rects[bo]._revisionRects = {}
-      else:
+      self.draw()
+
+   def onExpandRevisions(self, event):
+      bo = self.selectedRects[0] # TODO: For group selection we need to go through the entire selected rects
+      if not self.rects[bo]._revShown:
          self.rects[bo]._revShown = True
          xy = self.rects[bo].rect.BoundingBox.Right, self.rects[bo].rect.BoundingBox.Top
          for revision in efbo.getAllRevisions(bo, self.busObjDict):
@@ -468,10 +487,11 @@ class NavigatorController:
          self.canvas.RemoveObjects((self.rects[bo].rect, self.rects[bo].rect.Text))
          del self.rects[bo]
       self.selectedRects = []
+      if self.groupBox:
+         self.groupBox.UnBindAll()
+         self.canvas.RemoveObject(self.groupBox)
+         self.groupBox = None
       self.draw()
-
-   def onGroup(self, event):
-      print 'Grouping objects together'
 
    def onLock(self, event):
       print 'On Lock'
@@ -503,13 +523,15 @@ class NavigatorController:
       self.rects[object.Name].rect.SetLineColor('WHITE')
       self.rects[object.Name].rect.PutInForeground()
       self.rects[object.Name].rect.Text.PutInForeground()
-      self.onExpandRevisions(event)
+      if self.rects[object.Name]._revShown: self.onCollapseRevisions(event)
+      else: self.onExpandRevisions(event)
 
    #--------------------------------------------------------------------------------------#
    # Drawing Methods
    #--------------------------------------------------------------------------------------#
    def draw(self):
       self.redrawArrows()
+      self.drawGroupBox()
       self.canvas.Draw()
 
    def drawArrowsBetweenRevs(self, rev1, rev2):
@@ -610,7 +632,7 @@ class NavigatorController:
                   self.rects[bo]._revisionRects[revision].PutInForeground()
                   self.rects[bo]._revisionRects[revision].Text.PutInForeground()
                   self.rects[bo]._revisionRects[revision].SetLineColor(NavigatorModel.colors['WHITE'])
-      self.canvas.Draw()
+      self.draw()
 
    def moveRect(self, rect, (x,y)):
       rect.PutInForeground()
@@ -643,6 +665,7 @@ class NavigatorController:
                         self.drawArrowsBetweenRevs(self.rects[bo]._revisionRects[revision], self.rects[toBo]._revisionRects[rev])
 
    def clearSelectedRects(self):
+      if not self.selectedRects: return
       for bo in self.selectedRects:
          self.rects[bo].rect.SetLineColor(NavigatorModel.colors['BLACK'])
          if self.rects[bo]._revShown:
@@ -657,5 +680,42 @@ class NavigatorController:
                self.rects[bo]._revisionRects[revision].PutInBackground()
                self.rects[bo]._revisionRects[revision].Text.PutInBackground()
       self.selectedRects = []
+      if self.groupBox:
+         self.groupBox.UnBindAll()
+         self.canvas.RemoveObject(self.groupBox)
+         self.groupBox = None
 
+   def drawGroupBox(self):
+      if not self.selectedRects: return
+      left = bottom = sys.maxint
+      right = top = -sys.maxint - 1
+      for bo in self.selectedRects:
+         left = min(left, self.rects[bo].rect.BoundingBox.Left)
+         right = max(right, self.rects[bo].rect.BoundingBox.Right)
+         top = max(top, self.rects[bo].rect.BoundingBox.Top)
+         bottom = min(bottom, self.rects[bo].rect.BoundingBox.Bottom)
+         if self.rects[bo]._revShown:
+            for rev in self.rects[bo]._revisionRects:
+               right = max(right, self.rects[bo]._revisionRects[rev].BoundingBox.Right)
+      xy = left-5, bottom-5
+      wh = right-left+10, top-bottom+10
+      if self.groupBox:
+         self.groupBox.UnBindAll()
+         self.canvas.RemoveObject(self.groupBox)
+         self.groupBox = self.canvas.AddRectangle((xy), wh, LineWidth=2, FillColor=None, LineColor='BLUE')
+      else: self.groupBox = self.canvas.AddRectangle((xy), wh, LineWidth=2, FillColor=None, LineColor='BLUE')
 
+      self.groupBox.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, self.onGroupRectLeftClick)
+      self.groupBox.Bind(FloatCanvas.EVT_FC_RIGHT_DOWN, self.onGroupRectRightClick)
+
+   def onGroupRectLeftClick(self, Object):
+      print 'group object clicked'
+
+   def onGroupRectRightClick(self, Object):
+      self.onContextMenu(object)
+
+   def onGroup(self, event):
+      print 'Grouping objects together'
+
+   def onUngroup(self, event):
+      print 'Ungroup objects'
