@@ -113,7 +113,7 @@ class NavRect:
       # TODO: Need to query EFS for list of parents and children
 
 
-class RectDict(object):
+class RectDict(dict):
    @property
    def rectDict(self):
       return self._rectDict
@@ -166,7 +166,7 @@ class RectDict(object):
       if item: return True
       else: return False
 
-   def __init__(self):
+   def __init__(self, seq=None, **kwargs):
       self._rectDict = {}
 
    # Custom methods to add functionality to the main dictionary
