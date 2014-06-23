@@ -155,12 +155,16 @@ class RectDict(object):
             myKey = int(key)
       self._rectDict[myKey] = value
 
-
    def __iter__(self):
       return self._rectDict.itervalues()
 
    def __delitem__(self, key):
       self._rectDict.__delitem__(int(self.__getitem__(key).name))
+
+   def __contains__(self, item):
+      item = self.__getitem__(item)
+      if item: return True
+      else: return False
 
    def __init__(self):
       self._rectDict = {}
