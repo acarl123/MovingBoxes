@@ -226,7 +226,7 @@ class NavigatorController:
       if (addNodeDlg.ShowModal () == wx.ID_OK):
          if (addNodeDlg.ReturnBOs != None):
             for bo in addNodeDlg.ReturnBOs:
-               if self.rects[bo]: continue # Check if this bo is already on the canvas
+               if bo in self.rects: continue # Check if this bo is already on the canvas
                xy = (random.randint(0, self.mainWindow.GetSize()[0]), random.randint(0, self.mainWindow.GetSize()[1])) #TODO: Come up with a good way to populate the screen
                self.boType = efbo.getTypeName(bo)
                if self.boType in TypeColors.ObjColorDict:
@@ -676,7 +676,7 @@ class NavigatorController:
             for rel in relationships:
                if efrel.getTypeName(rel) == MDXUtils.REL_AD: continue
                toBo = efrel.getTo(rel)
-               if self.rects[toBo]: # If the object is on the screen
+               if toBo in self.rects: # If the object is on the screen
                   if not self.rects[bo]._revShown and not self.rects[toBo]._revShown: #both revs collapsed
                      self.drawArrows(self.rects[bo].rect, self.rects[toBo].rect, 0)
                   elif self.rects[bo]._revShown and not self.rects[toBo]._revShown: # one collapsed
