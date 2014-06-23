@@ -359,6 +359,14 @@ class NavigatorController:
    #--------------------------------------------------------------------------------------#
    # ContextMenu with Single Object Selected Bindings
    #--------------------------------------------------------------------------------------#
+   def onAttributes(self, event):
+      print 'Show Attributes'
+      bo = self.selectedRects[0]
+      dlg = AttributeDlg.AttributeDlg(self.canvas, self.rects[bo].rect.Name)
+      dlg.Show()
+      if dlg.ShowModal () == wx.ID_OK:
+         dlg.Destroy()
+
    def onCollapseRevisions(self, event):
       bo = self.selectedRects[0] # TODO: For group selection we need to go through the entire selected rects
       if self.rects[bo]._revShown:
@@ -444,14 +452,6 @@ class NavigatorController:
                self.rects.append(rect)
                self.drawArrows(self.rects[fromBo].rect, self.rects[bo].rect, 0) # Draw arrows between the two rects
       self.onArrangeVertically(event)
-
-   # TODO: Add third parameter for node and use the attribute dialog that is already written
-   def onAttributes(self, event):
-      print 'Show Attributes'
-      bo = self.selectedRects[0]
-      dlg = AttributeDlg.AttributeDlg(self.canvas, self.rects[bo].rect.Name)
-      dlg.Show()
-
    #--------------------------------------------------------------------------------------#
    # ContextMenu with Multiple Objects Selected Bindings
    #--------------------------------------------------------------------------------------#
@@ -511,8 +511,14 @@ class NavigatorController:
          self.groupBox = None
       self.draw()
 
+   def onGroup(self, event):
+      print 'Grouping objects together'
+
    def onLock(self, event):
       print 'On Lock'
+
+   def onUngroup(self, event):
+      print 'Ungroup objects'
 
    #--------------------------------------------------------------------------------------#
    # FloatCanvas Rect Bindings
@@ -720,8 +726,8 @@ class NavigatorController:
       if self.groupBox:
          self.groupBox.UnBindAll()
          self.canvas.RemoveObject(self.groupBox)
-         self.groupBox = self.canvas.AddRectangle((xy), wh, LineWidth=2, FillColor=None, LineColor='BLUE')
-      else: self.groupBox = self.canvas.AddRectangle((xy), wh, LineWidth=2, FillColor=None, LineColor='BLUE')
+         self.groupBox = self.canvas.AddRectangle((xy), wh, LineWidth=2, FillColor=None, LineColor='WHITE')
+      else: self.groupBox = self.canvas.AddRectangle((xy), wh, LineWidth=2, FillColor=None, LineColor='WHITE')
 
       self.groupBox.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, self.onGroupRectLeftClick)
       self.groupBox.Bind(FloatCanvas.EVT_FC_RIGHT_DOWN, self.onGroupRectRightClick)
@@ -732,8 +738,3 @@ class NavigatorController:
    def onGroupRectRightClick(self, Object):
       self.onContextMenu(object)
 
-   def onGroup(self, event):
-      print 'Grouping objects together'
-
-   def onUngroup(self, event):
-      print 'Ungroup objects'
