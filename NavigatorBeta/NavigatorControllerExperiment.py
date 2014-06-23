@@ -11,7 +11,7 @@ from wx.lib.floatcanvas import FloatCanvas, GUIMode
 import AddNodeDlg
 import AttributeDlg
 import BackgroundFunctionDlg
-import cPickle
+import pickle, shelve
 import ExportFileBusinessObject as efbo
 import ExportFileRelationship as efrel
 import ExportFileUtils
