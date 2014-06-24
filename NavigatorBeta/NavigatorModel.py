@@ -52,7 +52,7 @@ class NavRect:
 
    @revisions.setter
    def revisions(self, value):
-      self._revisions = value
+      self._revisionRects = value
 
    @property
    def bo(self):
@@ -113,7 +113,7 @@ class NavRect:
       # TODO: Need to query EFS for list of parents and children
 
 
-class RectDict(dict):
+class RectDict(object):
    @property
    def rectDict(self):
       return self._rectDict
@@ -172,3 +172,9 @@ class RectDict(dict):
    # Custom methods to add functionality to the main dictionary
    def append(self, rectObj):
       self._rectDict[int(rectObj.rect.Name)] = rectObj
+
+   def getKey(self, searchValue):
+      for key, value in self._rectDict.iteritems():
+         if searchValue == value: return key
+
+      return False

@@ -56,6 +56,7 @@ class NavigatorController:
       self.mainWindow.Bind(wx.EVT_MENU, self.onHideLegend, self.mainWindow.hideLegendMenuItem)
       self.mainWindow.Bind(wx.EVT_MENU, self.onOpen, self.mainWindow.menuOpen)
       self.mainWindow.Bind(wx.EVT_MENU, self.onSave, self.mainWindow.menuSave)
+      self.mainWindow.Bind(wx.EVT_MENU, self.onLoad, self.mainWindow.menuLoad)
       self.mainWindow.Bind(wx.EVT_MOUSEWHEEL, self.onScroll)
       self.mainWindow.Bind(wx.EVT_MENU, self.onShowLegend, self.mainWindow.showLegendMenuItem)
 
@@ -269,14 +270,91 @@ class NavigatorController:
             style=wx.OPEN | wx.CHANGE_DIR
             )
       if dlg.ShowModal() == wx.ID_OK:
-         path = dlg.GetPath()
-         print "Opening:" + path
-         dlg = BackgroundFunctionDlg.BackgroundFunctionDlg(self.canvas, 'Opening EFS', self.OpenFile, path)
+         self.efsPath = dlg.GetPath()
+         print "Opening:" + self.efsPath
+         dlg = BackgroundFunctionDlg.BackgroundFunctionDlg(self.canvas, 'Opening EFS', self.OpenFile, self.efsPath )
          dlg.Go()
+         _, efsFileName = os.path.split(self.efsPath)
+         self.mainWindow.SetTitle('EFS Navigator - %s' % efsFileName)
       dlg.Destroy()
 
    def onSave(self, event):
-      print 'saved'
+      if not 'efsPath' in self.__dict__.keys(): return # makes sure an EFS is loaded so you cannot save a blank canvas
+
+      # Show save file dialog
+      dlg = wx.FileDialog(self.canvas,
+                                message="Save the canvas as...",
+                                defaultDir=os.getcwd(),
+                                wildcard="Navigator files (*.nav)|*.nav",
+                                style=wx.SAVE | wx.CHANGE_DIR
+      )
+      if dlg.ShowModal() == wx.ID_OK:
+         path = dlg.GetPath()
+      else: return
+
+
+      # converts rect dict to a pickleable object
+      obj = {}
+      for rect in self.rects:
+         obj[self.rects.getKey(rect)] = [
+            (rect.rect.BoundingBox.Right,
+             rect.rect.BoundingBox.Top,
+             rect.rect.BoundingBox.Width,
+             rect.rect.BoundingBox.Height
+            ),
+            [rect for rect in rect._revisionRects]
+         ]
+      pickleList = [self.efsPath, obj,]
+
+      pickle.dump(pickleList, open(path, 'wb+'))
+
+   def onLoad(self, event):
+      dlg = wx.FileDialog(
+         self.canvas,
+         message = "Save the canvas as...",
+         defaultDir = os.getcwd(),
+         wildcard = "Navigator files (*.nav)|*.nav",
+         style = wx.OPEN | wx.CHANGE_DIR
+      )
+
+      if dlg.ShowModal() == wx.ID_OK:
+         path = dlg.GetPath()
+      else:
+         return
+
+      # Clear existing canvas
+      # self.__init__()
+      # self.draw()
+
+      vars = pickle.load(open(path, 'rb'))
+      self.efsPath = vars[0]
+      print "Opening:" + self.efsPath
+      dlg = BackgroundFunctionDlg.BackgroundFunctionDlg(self.canvas, 'Opening EFS', self.OpenFile, self.efsPath)
+      dlg.Go()
+      _, efsFileName = os.path.split(self.efsPath)
+      self.mainWindow.SetTitle('EFS Navigator - %s' % efsFileName)
+
+      for key, value in vars[1].iteritems():
+         if not key: continue
+         xy = (value[0][0], value[0][1])
+         self.boType = efbo.getTypeName(key)
+
+         if self.boType in TypeColors.ObjColorDict:
+            colorSet = TypeColors.ObjColorDict[self.boType]
+            rect = NavRect(key, self.mainWindow.NavCanvas, '%s' % efbo.getName(key), xy, 0, colorSet, 'WHITE')
+         else:
+            rect = NavRect(key, self.mainWindow.NavCanvas, '%s' % efbo.getName(key), xy, 0, 'WHITE', 'WHITE')
+
+         rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN,
+                        lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event))  # You can bind to the hit event of rectangle objects
+         rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK,
+                        lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
+         self.rects.append(rect)
+         self.selectedRects.append(key)
+         rect.rect.PutInForeground()
+         rect.rect.Text.PutInForeground()
+
+      self.draw()
 
    def onScroll(self, event):
       scrollFactor = event.GetWheelRotation()
