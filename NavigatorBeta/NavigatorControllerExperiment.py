@@ -11,7 +11,7 @@ from wx.lib.floatcanvas import FloatCanvas, GUIMode
 import AddNodeDlg
 import AttributeDlg
 import BackgroundFunctionDlg
-import pickle, shelve
+import pickle
 import ExpandChildrenController
 import ExportFileBusinessObject as efbo
 import ExportFileRelationship as efrel
@@ -57,6 +57,7 @@ class NavigatorController:
       self.mainWindow.Bind(wx.EVT_MENU, self.onHideLegend, self.mainWindow.hideLegendMenuItem)
       self.mainWindow.Bind(wx.EVT_MENU, self.onOpen, self.mainWindow.menuOpen)
       self.mainWindow.Bind(wx.EVT_MENU, self.onSave, self.mainWindow.menuSave)
+      self.mainWindow.Bind(wx.EVT_MENU, self.onLoad, self.mainWindow.menuLoad)
       self.mainWindow.Bind(wx.EVT_MOUSEWHEEL, self.onScroll)
       self.mainWindow.Bind(wx.EVT_MENU, self.onShowLegend, self.mainWindow.showLegendMenuItem)
 
@@ -274,14 +275,119 @@ class NavigatorController:
             style=wx.OPEN | wx.CHANGE_DIR
             )
       if dlg.ShowModal() == wx.ID_OK:
-         path = dlg.GetPath()
-         print "Opening:" + path
-         dlg = BackgroundFunctionDlg.BackgroundFunctionDlg(self.canvas, 'Opening EFS', self.OpenFile, path)
+         self.efsPath = dlg.GetPath()
+         print "Opening:" + self.efsPath
+         dlg = BackgroundFunctionDlg.BackgroundFunctionDlg(self.canvas, 'Opening EFS', self.OpenFile, self.efsPath )
          dlg.Go()
+         _, efsFileName = os.path.split(self.efsPath)
+         self.mainWindow.SetTitle('EFS Navigator - %s' % efsFileName)
       dlg.Destroy()
 
    def onSave(self, event):
-      print 'saved'
+      if not 'efsPath' in self.__dict__.keys(): return # makes sure an EFS is loaded so you cannot save a blank canvas
+
+      # Show save file dialog
+      dlg = wx.FileDialog(self.canvas,
+                                message="Save the canvas as...",
+                                defaultDir=os.getcwd(),
+                                wildcard="Navigator files (*.nav)|*.nav",
+                                style=wx.SAVE | wx.CHANGE_DIR
+      )
+      if dlg.ShowModal() == wx.ID_OK:
+         path = dlg.GetPath()
+      else: return
+
+
+      # converts rect dict to a pickleable object
+      obj = {}
+      for rect in self.rects:
+         obj[self.rects.getKey(rect)] = [
+            (rect.rect.BoundingBox.Right,
+             rect.rect.BoundingBox.Top,
+             rect.rect.BoundingBox.Width,
+             rect.rect.BoundingBox.Height
+            ),
+            [rect for rect in rect._revisionRects]
+         ]
+
+      # captures all of the pickleable class variables to restore same state
+      data = {}
+      for name, value in self.__dict__.iteritems():
+         try:
+            _ = pickle.dumps(value)
+            data[name] = value
+         except:
+            pass
+
+      # captures the few canvas variables needed
+      canvasStates = {
+         'scale' : self.canvas.Scale,
+         'origin': self.mainWindow.NavCanvas.GetClientAreaOrigin()
+      }
+
+      pickleList = [self.efsPath, obj, data, canvasStates]
+
+      pickle.dump(pickleList, open(path, 'wb+'))
+
+   def onLoad(self, event):
+      dlg = wx.FileDialog(
+         self.canvas,
+         message = "Save the canvas as...",
+         defaultDir = os.getcwd(),
+         wildcard = "Navigator files (*.nav)|*.nav",
+         style = wx.OPEN | wx.CHANGE_DIR
+      )
+
+      if dlg.ShowModal() == wx.ID_OK:
+         path = dlg.GetPath()
+      else:
+         return
+
+      # TODO: Clear existing canvas
+      # self.__dict__ = {}
+      # self.__init__()
+      # self.draw()
+
+      # Loads the EFS from the saved path
+      vars = pickle.load(open(path, 'rb'))
+      self.efsPath = vars[0]
+      print "Opening:" + self.efsPath
+      dlg = BackgroundFunctionDlg.BackgroundFunctionDlg(self.canvas, 'Opening EFS', self.OpenFile, self.efsPath)
+      dlg.Go()
+      _, efsFileName = os.path.split(self.efsPath)
+      self.mainWindow.SetTitle('EFS Navigator - %s' % efsFileName)
+
+      # Loads in class variables
+      for name, value in self.__dict__.iteritems():
+         if name in vars[2]:
+            self.__dict__[name] = vars[2][name]
+
+      # Loads all rectangles on the screen
+      self.canvas.Scale = vars[3]['scale']
+      for key, value in vars[1].iteritems():
+         if not key: continue
+         xy = (value[0][0], value[0][1])
+         self.boType = efbo.getTypeName(key)
+
+         if self.boType in TypeColors.ObjColorDict:
+            colorSet = TypeColors.ObjColorDict[self.boType]
+            rect = NavRect(key, self.mainWindow.NavCanvas, '%s' % efbo.getName(key), xy, 0, colorSet, 'BLACK')
+         else:
+            rect = NavRect(key, self.mainWindow.NavCanvas, '%s' % efbo.getName(key), xy, 0, 'WHITE', 'BLACK')
+
+         rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN,
+                        lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event))  # You can bind to the hit event of rectangle objects
+         rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK,
+                        lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
+         self.rects.append(rect)
+         rect.rect.PutInForeground()
+         rect.rect.Text.PutInForeground()
+
+      # Loads saved canvas scale and origin
+      # self.canvas.Zoom(vars[3]['scale'], vars[3]['origin'], 'pixel')
+      self.canvas.ZoomToBB()
+
+      self.draw()
 
    def onScroll(self, event):
       scrollFactor = event.GetWheelRotation()
