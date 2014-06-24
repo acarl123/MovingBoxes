@@ -297,7 +297,11 @@ class NavigatorController:
       # converts rect dict to a pickleable object
       obj = {}
       for rect in self.rects:
-         obj[self.rects.getKey(rect)] = [
+         if isinstance(rect, (int, long)):
+            key = rect
+         else:
+            key = rect.name
+         obj[key] = [
             (rect.rect.BoundingBox.Right,
              rect.rect.BoundingBox.Top,
              rect.rect.BoundingBox.Width,
@@ -323,7 +327,14 @@ class NavigatorController:
 
       pickleList = [self.efsPath, obj, data, canvasStates]
 
-      pickle.dump(pickleList, open(path, 'wb+'))
+      try:
+         pickle.dump(pickleList, open(path, 'wb+'))
+         dlg = wx.MessageDialog(self.mainWindow, 'Save to %s complete!' % path, 'Save Successful', wx.ICON_INFORMATION|wx.OK, wx.DefaultPosition)
+         dlg.ShowModal()
+      except:
+         e = sys.exc_info()[0]
+         dlg = wx.MessageDialog(self.mainWindow, 'Save Failed at: \n%s' % e, 'Save Error', wx.ICON_ERROR|wx.OK, wx.DefaultPosition)
+         dlg.ShowModal()
 
    def onLoad(self, event):
       dlg = wx.FileDialog(
@@ -359,17 +370,20 @@ class NavigatorController:
             self.__dict__[name] = vars[2][name]
 
       # Loads all rectangles on the screen
-      self.canvas.Scale = vars[3]['scale']
+      self.canvas.Scale = vars[3]['scale'] # must set scale first so coordinates are correct
       for key, value in vars[1].iteritems():
+         print value
          if not key: continue
-         xy = (value[0][0], value[0][1])
+         xy = (value[0][0], -value[0][1])
          self.boType = efbo.getTypeName(key)
+         if key in self.selectedRects: color = 'WHITE'
+         else: color = 'BLACK'
 
          if self.boType in TypeColors.ObjColorDict:
             colorSet = TypeColors.ObjColorDict[self.boType]
-            rect = NavRect(key, self.mainWindow.NavCanvas, '%s' % efbo.getName(key), xy, 0, colorSet, 'BLACK')
+            rect = NavRect(key, self.mainWindow.NavCanvas, '%s' % efbo.getName(key), xy, 0, colorSet, color)
          else:
-            rect = NavRect(key, self.mainWindow.NavCanvas, '%s' % efbo.getName(key), xy, 0, 'WHITE', 'BLACK')
+            rect = NavRect(key, self.mainWindow.NavCanvas, '%s' % efbo.getName(key), xy, 0, 'WHITE', color)
 
          rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN,
                         lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event))  # You can bind to the hit event of rectangle objects
@@ -379,9 +393,36 @@ class NavigatorController:
          rect.rect.PutInForeground()
          rect.rect.Text.PutInForeground()
 
+         # Load revisions if they were shown
+         if value[1]:
+            bo = key  # TODO: For group selection we need to go through the entire selected rects
+            if not self.rects[bo]._revShown:
+               self.rects[bo]._revShown = True
+               xy = self.rects[bo].rect.BoundingBox.Right, self.rects[bo].rect.BoundingBox.Top
+               for revision in efbo.getAllRevisions(bo, self.busObjDict):
+                  self.boType = efbo.getTypeName(revision)
+                  text = self.canvas.AddScaledText('%s' % efbo.getRevision(revision), xy,
+                                                   Size=12, Family=wx.ROMAN, Weight=wx.BOLD)
+                  wh = text.BoundingBox.Width, text.BoundingBox.Height
+                  if self.boType in TypeColors.ObjColorDict:
+                     colorSet = TypeColors.ObjColorDict[self.boType]
+                     # TODO: eventually revs need to be selectable
+                     rect = self.canvas.AddRectangle((xy[0], xy[1] - wh[1]), wh, LineWidth=0, FillColor=colorSet,
+                                                     LineColor=color)
+                  else:
+                     rect = self.canvas.AddRectangle((xy[0], xy[1] - wh[1]), wh, LineWidth=0, FillColor='WHITE',
+                                                     LineColor=color)
+                  rect.Name = '%s' % efbo.getRevision(revision)
+                  rect.Text = text
+                  # TODO: Put in bindings maybe to the revision rects
+                  rect.PutInForeground()
+                  rect.Text.PutInForeground()
+                  self.rects[bo]._revisionRects[int(revision)] = rect  # append the dict with bo: rect
+                  xy = xy[0] + wh[0], xy[1]
+
       # Loads saved canvas scale and origin
       # self.canvas.Zoom(vars[3]['scale'], vars[3]['origin'], 'pixel')
-      self.canvas.ZoomToBB()
+      self.mainWindow.NavCanvas.ZoomToFit(event)
 
       self.draw()
 
