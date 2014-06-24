@@ -12,6 +12,7 @@ import AddNodeDlg
 import AttributeDlg
 import BackgroundFunctionDlg
 import pickle, shelve
+import ExpandChildrenController
 import ExportFileBusinessObject as efbo
 import ExportFileRelationship as efrel
 import ExportFileUtils
@@ -485,26 +486,44 @@ class NavigatorController:
       xy = self.rects[bo].rect.BoundingBox.Right + self.rects[bo].rect.BoundingBox.Width, \
            self.rects[bo].rect.BoundingBox.Top
       xy = self.canvas.WorldToPixel(xy)
-      for revision in efbo.getAllRevisions(bo, self.busObjDict):
-         relationships = efbo.getFromRelationship(revision)
-         for rel in relationships:
-            if efrel.getTypeName(rel) == MDXUtils.REL_AD: continue
-            toBo = efrel.getTo(rel)
-            if not self.rects[toBo]: # Check if the bo is already on the canvas
-               self.boType = efbo.getTypeName(toBo)
-               if self.boType in TypeColors.ObjColorDict:
-                  colorSet = TypeColors.ObjColorDict[self.boType]
+      expandDlg = ExpandChildrenController.ExpandChildrenController(self.canvas, bo, self.busObjDict)
+      expandDlg.show()
+      if expandDlg.expandDlg.ShowModal() == wx.ID_OK:
+         if (expandDlg.returnBOs != None):
+            for toBo in expandDlg.returnBOs:
+               if not toBo in self.rects:
+                  self.boType = efbo.getTypeName(toBo)
+                  if self.boType in TypeColors.ObjColorDict: colorSet = TypeColors.ObjColorDict[self.boType]
+                  else: colorSet = 'WHITE'
                   rect = NavRect(toBo, self.mainWindow.NavCanvas, '%s' % efbo.getName(toBo), xy, 0, colorSet, 'WHITE')
-               else:
-                  rect = NavRect(toBo, self.mainWindow.NavCanvas, '%s' % efbo.getName(toBo), xy, 0, 'WHITE', 'WHITE')
-               rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event))
-               rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
-               rect.rect.PutInForeground()
-               rect.rect.Text.PutInForeground()
-               self.selectedRects.append(toBo)
-               self.rects.append(rect)
-               self.drawArrows(self.rects[bo].rect, self.rects[toBo].rect, 0) # Draw arrows between the two rects
+                  rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event))
+                  rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
+                  rect.rect.PutInForeground()
+                  rect.rect.Text.PutInForeground()
+                  self.selectedRects.append(toBo)
+                  self.rects.append(rect)
       self.onArrangeVertically(event)
+
+      # for revision in efbo.getAllRevisions(bo, self.busObjDict):
+      #    relationships = efbo.getFromRelationship(revision)
+      #    for rel in relationships:
+      #       if efrel.getTypeName(rel) == MDXUtils.REL_AD: continue
+      #       toBo = efrel.getTo(rel)
+      #       if not self.rects[toBo]: # Check if the bo is already on the canvas
+      #          self.boType = efbo.getTypeName(toBo)
+      #          if self.boType in TypeColors.ObjColorDict:
+      #             colorSet = TypeColors.ObjColorDict[self.boType]
+      #             rect = NavRect(toBo, self.mainWindow.NavCanvas, '%s' % efbo.getName(toBo), xy, 0, colorSet, 'WHITE')
+      #          else:
+      #             rect = NavRect(toBo, self.mainWindow.NavCanvas, '%s' % efbo.getName(toBo), xy, 0, 'WHITE', 'WHITE')
+      #          rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event))
+      #          rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
+      #          rect.rect.PutInForeground()
+      #          rect.rect.Text.PutInForeground()
+      #          self.selectedRects.append(toBo)
+      #          self.rects.append(rect)
+      #          # self.drawArrows(self.rects[bo].rect, self.rects[toBo].rect, 0) # Draw arrows between the two rects
+      # self.onArrangeVertically(event)
 
    def onExpandIncoming(self, event):
       bo = self.selectedRects[0]
