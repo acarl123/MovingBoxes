@@ -11,7 +11,7 @@ from wx.lib.floatcanvas import FloatCanvas, GUIMode
 import AddNodeDlg
 import AttributeDlg
 import BackgroundFunctionDlg
-import pickle, shelve
+import pickle
 import ExpandChildrenController
 import ExportFileBusinessObject as efbo
 import ExportFileRelationship as efrel
@@ -305,7 +305,23 @@ class NavigatorController:
             ),
             [rect for rect in rect._revisionRects]
          ]
-      pickleList = [self.efsPath, obj,]
+
+      # captures all of the pickleable class variables to restore same state
+      data = {}
+      for name, value in self.__dict__.iteritems():
+         try:
+            _ = pickle.dumps(value)
+            data[name] = value
+         except:
+            pass
+
+      # captures the few canvas variables needed
+      canvasStates = {
+         'scale' : self.canvas.Scale,
+         'origin': self.mainWindow.NavCanvas.GetClientAreaOrigin()
+      }
+
+      pickleList = [self.efsPath, obj, data, canvasStates]
 
       pickle.dump(pickleList, open(path, 'wb+'))
 
@@ -323,10 +339,12 @@ class NavigatorController:
       else:
          return
 
-      # Clear existing canvas
+      # TODO: Clear existing canvas
+      # self.__dict__ = {}
       # self.__init__()
       # self.draw()
 
+      # Loads the EFS from the saved path
       vars = pickle.load(open(path, 'rb'))
       self.efsPath = vars[0]
       print "Opening:" + self.efsPath
@@ -335,6 +353,13 @@ class NavigatorController:
       _, efsFileName = os.path.split(self.efsPath)
       self.mainWindow.SetTitle('EFS Navigator - %s' % efsFileName)
 
+      # Loads in class variables
+      for name, value in self.__dict__.iteritems():
+         if name in vars[2]:
+            self.__dict__[name] = vars[2][name]
+
+      # Loads all rectangles on the screen
+      self.canvas.Scale = vars[3]['scale']
       for key, value in vars[1].iteritems():
          if not key: continue
          xy = (value[0][0], value[0][1])
@@ -342,18 +367,21 @@ class NavigatorController:
 
          if self.boType in TypeColors.ObjColorDict:
             colorSet = TypeColors.ObjColorDict[self.boType]
-            rect = NavRect(key, self.mainWindow.NavCanvas, '%s' % efbo.getName(key), xy, 0, colorSet, 'WHITE')
+            rect = NavRect(key, self.mainWindow.NavCanvas, '%s' % efbo.getName(key), xy, 0, colorSet, 'BLACK')
          else:
-            rect = NavRect(key, self.mainWindow.NavCanvas, '%s' % efbo.getName(key), xy, 0, 'WHITE', 'WHITE')
+            rect = NavRect(key, self.mainWindow.NavCanvas, '%s' % efbo.getName(key), xy, 0, 'WHITE', 'BLACK')
 
          rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN,
                         lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event))  # You can bind to the hit event of rectangle objects
          rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK,
                         lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
          self.rects.append(rect)
-         self.selectedRects.append(key)
          rect.rect.PutInForeground()
          rect.rect.Text.PutInForeground()
+
+      # Loads saved canvas scale and origin
+      # self.canvas.Zoom(vars[3]['scale'], vars[3]['origin'], 'pixel')
+      self.canvas.ZoomToBB()
 
       self.draw()
 
