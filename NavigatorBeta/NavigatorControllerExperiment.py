@@ -34,7 +34,6 @@ class NavigatorController:
       self.canvas = self.mainWindow.NavCanvas.Canvas
       self.canvas.InitializePanel()
       self.canvas.InitAll()
-      self.canvas.Draw()
 
       # Setup model and efs
       self.rectModel = NavigatorModel.NavRect
@@ -47,6 +46,7 @@ class NavigatorController:
       self.canvas.Bind(wx.EVT_KEY_DOWN, self.onKeyEvents) #TODO: fix it so these are actually binding
       self.canvas.Bind(wx.EVT_KEY_UP, self.onKeyEvents)
       self.canvas.Bind(wx.EVT_LEAVE_WINDOW, self.onLeaveWindow)
+      self.canvas.Bind(wx.EVT_ENTER_WINDOW, self.onEnterWindow)
       self.canvas.Bind(wx.EVT_MIDDLE_DOWN, self.onMiddleDn)
       self.canvas.Bind(wx.EVT_MIDDLE_UP, self.onMiddleUp)
 
@@ -93,9 +93,9 @@ class NavigatorController:
 
    def disable(self):
       # Unbind events to FloatCanvas
-      self.canvas.Unbind(FloatCanvas.EVT_LEFT_DOWN, self.onClick)
-      self.canvas.Unbind(FloatCanvas.EVT_MOTION, self.onDrag)
-      self.canvas.Unbind(FloatCanvas.EVT_LEFT_UP, self.onLUp)
+      self.canvas.Unbind(FloatCanvas.EVT_LEFT_DOWN)
+      self.canvas.Unbind(FloatCanvas.EVT_MOTION)
+      self.canvas.Unbind(FloatCanvas.EVT_LEFT_UP)
 
    def makeLegend(self):
       listCtrl = self.mainWindow.m_listCtrl1
@@ -199,7 +199,11 @@ class NavigatorController:
       event.Skip()
 
    def onLeaveWindow(self, event):
-      print 'Leaving Window'
+      self.disable()
+      event.Skip()
+
+   def onEnterWindow(self, event):
+      self.enable()
       event.Skip()
 
    def onMiddleDn(self, event):
@@ -298,6 +302,10 @@ class NavigatorController:
    # FloatCanvas Bindings
    #--------------------------------------------------------------------------------------#
    def onClick(self, event):
+      if self.groupBox and self.inGroupBox(event):
+         self.onDrag(event)
+         return
+
       # Start drawing band box
       self.Drawing = True
       self.StartPoint = event.GetPosition()
@@ -729,7 +737,7 @@ class NavigatorController:
          self.groupBox = None
 
    def drawGroupBox(self):
-      if not self.selectedRects: return
+      if not self.selectedRects or len(self.selectedRects)==1: return
       left = bottom = sys.maxint
       right = top = -sys.maxint - 1
       for bo in self.selectedRects:
@@ -745,15 +753,17 @@ class NavigatorController:
       if self.groupBox:
          self.groupBox.UnBindAll()
          self.canvas.RemoveObject(self.groupBox)
-         self.groupBox = self.canvas.AddRectangle((xy), wh, LineWidth=2, FillColor=None, LineColor='WHITE')
-      else: self.groupBox = self.canvas.AddRectangle((xy), wh, LineWidth=2, FillColor=None, LineColor='WHITE')
+         self.groupBox = self.canvas.AddRectangle((xy), wh, LineWidth=2, LineColor='WHITE', InForeground=False)
+      else: self.groupBox = self.canvas.AddRectangle((xy), wh, LineWidth=2, LineColor='WHITE', InForeground=False)
 
-      self.groupBox.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, self.onGroupRectLeftClick)
-      self.groupBox.Bind(FloatCanvas.EVT_FC_RIGHT_DOWN, self.onGroupRectRightClick)
-
-   def onGroupRectLeftClick(self, Object):
-      print 'group object clicked'
-
-   def onGroupRectRightClick(self, Object):
-      self.onContextMenu(object)
+   def inGroupBox(self, event):
+      if not self.groupBox: return
+      xy = self.groupBox.BoundingBox.Left, self.groupBox.BoundingBox.Top
+      left, top = self.canvas.WorldToPixel((xy))
+      right = left + self.groupBox.BoundingBox.Width
+      bottom = top + self.groupBox.BoundingBox.Height
+      if left <= event.GetPosition()[0] <= right and \
+         top <= event.GetPosition()[1] <= bottom:
+         return True
+      return False
 
