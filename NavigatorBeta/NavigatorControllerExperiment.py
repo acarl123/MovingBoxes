@@ -201,6 +201,15 @@ class NavigatorController:
 
    def onLeaveWindow(self, event):
       self.disable()
+      # TODO: Look into capturing up and down and left up mouseevents off the canvas
+      if self.Drawing:
+         self.Drawing = False
+         if self.RBRect:
+            WH = self.canvas.PixelToWorld(event.GetPosition()) - self.StartPointWorld
+            wx.CallAfter(self.drawBandBox, (self.StartPointWorld, WH))
+         self.RBRect = None
+         self.StartPointWorld = None
+      self.draw()
       event.Skip()
 
    def onEnterWindow(self, event):
@@ -254,6 +263,14 @@ class NavigatorController:
       exit()
 
    def onExport(self, event):
+      for bo in self.selectedRects:
+         self.rects[bo].rect.PutInBackground()
+         self.rects[bo].rect.Text.PutInBackground()
+         if self.rects[bo]._revShown:
+            for revision in self.rects[bo]._revisionRects:
+               self.rects[bo]._revisionRects[revision].PutInBackground()
+               self.rects[bo]._revisionRects[revision].Text.PutInBackground()
+      self.canvas.Draw()
       dlg = wx.FileDialog(self.canvas, message="Save file as ...", defaultDir=os.getcwd(),
                           defaultFile="", wildcard="*.png", style=wx.SAVE)
       if dlg.ShowModal() == wx.ID_OK:
@@ -261,6 +278,14 @@ class NavigatorController:
          if not(path[-4:].lower() == ".png"):
             path = path+".png"
          self.canvas.SaveAsImage(path)
+
+      for bo in self.selectedRects:
+         self.rects[bo].rect.PutInForeground()
+         self.rects[bo].rect.Text.PutInForeground()
+         if self.rects[bo]._revShown:
+            for revision in self.rects[bo]._revisionRects:
+               self.rects[bo]._revisionRects[revision].PutInForeground()
+               self.rects[bo]._revisionRects[revision].Text.PutInForeground()
 
    def onHideLegend(self, event):
       if self.mainWindow.m_splitter1.IsSplit():
@@ -465,6 +490,7 @@ class NavigatorController:
       if self.Drawing:
          self.Drawing = False
          if self.RBRect:
+            print 'event.Coords: ' + str(event.Coords)
             WH = event.Coords - self.StartPointWorld
             wx.CallAfter(self.drawBandBox, (self.StartPointWorld, WH))
          self.RBRect = None
