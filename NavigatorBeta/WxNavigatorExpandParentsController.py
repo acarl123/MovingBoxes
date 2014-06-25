@@ -1,6 +1,6 @@
 __author__ = 'mwj'
 
-import ExpandView
+import WxNavigatorExpandView
 import wx
 import ExportFileBusinessObject as efbo
 import ExportFileRelationship as efrel
@@ -13,7 +13,7 @@ class ExpandParentsController:
       self.busObjDict = busObjDict
 
       # Setup view
-      self.expandParentDlg = ExpandView.ExpandView(parent)
+      self.expandParentDlg = WxNavigatorExpandView.ExpandView(parent)
       self.parentList = self.expandParentDlg.listCtrlChildren
       self.parentList.InsertColumn(0, "Name")
       self.parentList.InsertColumn(1, "Type")

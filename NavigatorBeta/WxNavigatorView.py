@@ -13,7 +13,7 @@ import wx.xrc
 ###########################################################################
 ## Class NavigatorFrame
 ###########################################################################
-from NavigatorFloatCanvas import NavigatorFloatCanvas
+from WxNavigatorFloatCanvas import NavigatorFloatCanvas
 
 
 class NavigatorFrame ( wx.Frame ):

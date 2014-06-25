@@ -3,27 +3,27 @@ sys.path.append('C:\\hg\\tools_lag\\EFSUtils')
 from collections import deque
 from ConfigFile import *
 from DirectoryToken import *
-from NavigatorFloatCanvas import NavGuiMove
-from NavigatorModel import NavRect, RectDict
-from NavigatorView import NavigatorFrame
+from WxNavigatorFloatCanvas import NavGuiMove
+from WxNavigatorModel import NavRect, RectDict
+from WxNavigatorView import NavigatorFrame
 from wx._controls import LIST_AUTOSIZE
 from wx.lib.floatcanvas import FloatCanvas, GUIMode
 import AddNodeDlg
 import AttributeDlg
 import BackgroundFunctionDlg
 import cPickle as pickle
-import ExpandChildrenController
-import ExpandParentsController
+import WxNavigatorExpandChildrenController
+import WxNavigatorExpandParentsController
 import ExportFileBusinessObject as efbo
 import ExportFileRelationship as efrel
 import ExportFileUtils
 import MDXUtils
-import NavigatorModel
+import WxNavigatorModel
 import numpy
 import TypeColors
 import random
 import wx
-FloatCanvas.FloatCanvas.HitTest = NavigatorModel.BB_HitTest
+FloatCanvas.FloatCanvas.HitTest = WxNavigatorModel.BB_HitTest
 
 
 def reloadSelf(path):
@@ -42,7 +42,7 @@ class NavigatorController:
       self.canvas.InitAll()
 
       # Setup model and efs
-      self.rectModel = NavigatorModel.NavRect
+      self.rectModel = WxNavigatorModel.NavRect
       self.Config = ConfigFile('Config.txt')
       self.efs = ExportFileUtils.ExportFileSet()
       self.busObjDict = self.efs.newBusinessObjectDict(bodType=efbo.BOD_BOOLEAN_TYPE)
@@ -541,7 +541,7 @@ class NavigatorController:
          if abs(w) > self.Tol and abs(h) > self.Tol:
             # draw the RB box TODO: if the mouse leaves the screen then stop drawing
             dc = wx.ClientDC(self.canvas)
-            dc.SetPen(wx.Pen(NavigatorModel.colors['WHITE'], 2, wx.SHORT_DASH))
+            dc.SetPen(wx.Pen(WxNavigatorModel.colors['WHITE'], 2, wx.SHORT_DASH))
             dc.SetBrush(wx.TRANSPARENT_BRUSH)
             dc.SetLogicalFunction(wx.XOR)
             if self.RBRect:
@@ -631,7 +631,7 @@ class NavigatorController:
       xy = self.rects[bo].rect.BoundingBox.Right + self.rects[bo].rect.BoundingBox.Width, \
            self.rects[bo].rect.BoundingBox.Top
       xy = self.canvas.WorldToPixel(xy)
-      expandDlg = ExpandChildrenController.ExpandChildrenController(self.canvas, bo, self.busObjDict)
+      expandDlg = WxNavigatorExpandChildrenController.ExpandChildrenController(self.canvas, bo, self.busObjDict)
       expandDlg.show()
       if expandDlg.expandDlg.ShowModal() == wx.ID_OK:
          if (expandDlg.returnBOs != None):
@@ -653,7 +653,7 @@ class NavigatorController:
       bo = self.selectedRects[0]
       self.clearSelectedRects()
       xy = (100, 200) #TODO: Don't just hardcode in a position
-      expandDlg = ExpandParentsController.ExpandParentsController(self.canvas, bo, self.busObjDict)
+      expandDlg = WxNavigatorExpandParentsController.ExpandParentsController(self.canvas, bo, self.busObjDict)
       expandDlg.show()
       if expandDlg.expandParentDlg.ShowModal() == wx.ID_OK:
          if (expandDlg.returnBOs != None):
@@ -748,12 +748,12 @@ class NavigatorController:
          if object.Name not in self.selectedRects:
             self.clearSelectedRects()
             self.selectedRects.append(object.Name)
-      object.SetLineColor(NavigatorModel.colors['WHITE'])
+      object.SetLineColor(WxNavigatorModel.colors['WHITE'])
       object.PutInForeground() # clicked rect pops to top
       object.Text.PutInForeground()
       if self.rects[object.Name]._revShown:
          for revision in self.rects[object.Name]._revisionRects:
-            self.rects[object.Name]._revisionRects[revision].SetLineColor(NavigatorModel.colors['WHITE'])
+            self.rects[object.Name]._revisionRects[revision].SetLineColor(WxNavigatorModel.colors['WHITE'])
             self.rects[object.Name]._revisionRects[revision].PutInForeground()
             self.rects[object.Name]._revisionRects[revision].Text.PutInForeground()
       self.canvas.Draw()
@@ -867,12 +867,12 @@ class NavigatorController:
             self.selectedRects.append(bo.name)
             self.rects[bo].rect.PutInForeground() # clicked rect pops to top
             self.rects[bo].rect.Text.PutInForeground()
-            self.rects[bo].rect.SetLineColor(NavigatorModel.colors['WHITE'])
+            self.rects[bo].rect.SetLineColor(WxNavigatorModel.colors['WHITE'])
             if self.rects[bo]._revShown:
                for revision in self.rects[bo]._revisionRects:
                   self.rects[bo]._revisionRects[revision].PutInForeground()
                   self.rects[bo]._revisionRects[revision].Text.PutInForeground()
-                  self.rects[bo]._revisionRects[revision].SetLineColor(NavigatorModel.colors['WHITE'])
+                  self.rects[bo]._revisionRects[revision].SetLineColor(WxNavigatorModel.colors['WHITE'])
       self.draw()
 
    def moveRect(self, rect, (x,y)):
@@ -908,10 +908,10 @@ class NavigatorController:
    def clearSelectedRects(self):
       if not self.selectedRects: return
       for bo in self.selectedRects:
-         self.rects[bo].rect.SetLineColor(NavigatorModel.colors['BLACK'])
+         self.rects[bo].rect.SetLineColor(WxNavigatorModel.colors['BLACK'])
          if self.rects[bo]._revShown:
             for revision in self.rects[bo]._revisionRects:
-               self.rects[bo]._revisionRects[revision].SetLineColor(NavigatorModel.colors['BLACK'])
+               self.rects[bo]._revisionRects[revision].SetLineColor(WxNavigatorModel.colors['BLACK'])
       self.canvas.Draw()
       for bo in self.selectedRects:
          self.rects[bo].rect.PutInBackground()

@@ -1,5 +1,5 @@
 __author__ = 'mwj'
-import ExpandView
+import WxNavigatorExpandView
 import wx
 import ExportFileBusinessObject as efbo
 import ExportFileRelationship as efrel
@@ -12,7 +12,7 @@ class ExpandChildrenController:
       self.busObjDict = busObjDict
 
       # Setup view
-      self.expandDlg = ExpandView.ExpandView(parent)
+      self.expandDlg = WxNavigatorExpandView.ExpandView(parent)
       tnrd = efbo.getTnrd (bo)
       self.expandDlg.SetTitle ("\"" + tnrd[0] + "\", " + tnrd[1] + "\", " + tnrd[2] + "\", " + tnrd[3])
       self.childrenList = self.expandDlg.listCtrlChildren

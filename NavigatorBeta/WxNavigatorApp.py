@@ -1,6 +1,6 @@
 import sys; sys.path.append('C:\\hg\\tools_lag\\EFSUtils')
 import wx
-from NavigatorController import NavigatorController
+from WxNavigatorController import NavigatorController
 
 def _main():
    app = wx.App(None)
