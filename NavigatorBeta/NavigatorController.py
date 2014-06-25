@@ -14,6 +14,7 @@ import BackgroundFunctionDlg
 import cPickle as pickle
 import shelve
 import ExpandChildrenController
+import ExpandParentsController
 import ExportFileBusinessObject as efbo
 import ExportFileRelationship as efrel
 import ExportFileUtils
@@ -689,50 +690,26 @@ class NavigatorController:
                   self.rects.append(rect)
       self.onArrangeVertically(event)
 
-      # for revision in efbo.getAllRevisions(bo, self.busObjDict):
-      #    relationships = efbo.getFromRelationship(revision)
-      #    for rel in relationships:
-      #       if efrel.getTypeName(rel) == MDXUtils.REL_AD: continue
-      #       toBo = efrel.getTo(rel)
-      #       if not self.rects[toBo]: # Check if the bo is already on the canvas
-      #          self.boType = efbo.getTypeName(toBo)
-      #          if self.boType in TypeColors.ObjColorDict:
-      #             colorSet = TypeColors.ObjColorDict[self.boType]
-      #             rect = NavRect(toBo, self.mainWindow.NavCanvas, '%s' % efbo.getName(toBo), xy, 0, colorSet, 'WHITE')
-      #          else:
-      #             rect = NavRect(toBo, self.mainWindow.NavCanvas, '%s' % efbo.getName(toBo), xy, 0, 'WHITE', 'WHITE')
-      #          rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event))
-      #          rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
-      #          rect.rect.PutInForeground()
-      #          rect.rect.Text.PutInForeground()
-      #          self.selectedRects.append(toBo)
-      #          self.rects.append(rect)
-      #          # self.drawArrows(self.rects[bo].rect, self.rects[toBo].rect, 0) # Draw arrows between the two rects
-      # self.onArrangeVertically(event)
-
    def onExpandIncoming(self, event):
       bo = self.selectedRects[0]
       self.clearSelectedRects()
-      xy = (100, 200)
-      for revision in efbo.getAllRevisions(bo, self.busObjDict):
-         rels = efbo.getToRelationship(revision)
-         for rel in rels:
-            if efrel.getTypeName(rel) == MDXUtils.REL_AD: continue
-            fromBo = efrel.getFrom(rel)
-            if not self.rects[fromBo]:
-               self.boType = efbo.getTypeName(fromBo)
-               if self.boType in Colors.ObjColorDict:
-                  colorSet = Colors.ObjColorDict[self.boType]
+      xy = (100, 200) #TODO: Don't just hardcode in a position
+      expandDlg = ExpandParentsController.ExpandParentsController(self.canvas, bo, self.busObjDict)
+      expandDlg.show()
+      if expandDlg.expandParentDlg.ShowModal() == wx.ID_OK:
+         if (expandDlg.returnBOs != None):
+            for fromBo in expandDlg.returnBOs:
+               if not fromBo in self.rects:
+                  self.boType = efbo.getTypeName(fromBo)
+                  if self.boType in TypeColors.ObjColorDict: colorSet = TypeColors.ObjColorDict[self.boType]
+                  else: colorSet = 'WHITE'
                   rect = NavRect(fromBo, self.mainWindow.NavCanvas, '%s' % efbo.getName(fromBo), xy, 0, colorSet, 'WHITE')
-               else:
-                  rect = NavRect(fromBo, self.mainWindow.NavCanvas, '%s' % efbo.getName(fromBo), xy, 0, 'WHITE', 'WHITE')
-               rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event))
-               rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
-               rect.rect.PutInForeground()
-               rect.rect.Text.PutInForeground()
-               self.selectedRects.append(fromBo)
-               self.rects.append(rect)
-               self.drawArrows(self.rects[fromBo].rect, self.rects[bo].rect, 0) # Draw arrows between the two rects
+                  rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event))
+                  rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DCLICK, lambda object, event=wx.MouseEvent(): self.onRectLeftDClick(object, event))
+                  rect.rect.PutInForeground()
+                  rect.rect.Text.PutInForeground()
+                  self.selectedRects.append(fromBo)
+                  self.rects.append(rect)
       self.onArrangeVertically(event)
    #--------------------------------------------------------------------------------------#
    # ContextMenu with Multiple Objects Selected Bindings
@@ -764,7 +741,6 @@ class NavigatorController:
          ypos1 = self.rects[firstRect].rect.BoundingBox.Top
          index = 0
          for bo in self.selectedRects:
-            # self.rects[rectNum].rect.SetLineColor(NavigatorModel.colors['WHITE'])
             xpos2 = self.rects[bo].rect.BoundingBox.Left
             ypos2 = self.rects[bo].rect.BoundingBox.Top
             differencex = xpos1-xpos2

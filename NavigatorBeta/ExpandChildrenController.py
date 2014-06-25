@@ -13,6 +13,8 @@ class ExpandChildrenController:
 
       # Setup view
       self.expandDlg = ExpandView.ExpandView(parent)
+      tnrd = efbo.getTnrd (bo)
+      self.expandDlg.SetTitle ("\"" + tnrd[0] + "\", " + tnrd[1] + "\", " + tnrd[2] + "\", " + tnrd[3])
       self.childrenList = self.expandDlg.listCtrlChildren
       self.childrenList.InsertColumn(0, "Name")
       self.childrenList.InsertColumn(1, "Type")
@@ -27,6 +29,7 @@ class ExpandChildrenController:
       # Initial member variables
       self.childrenData = {}
       self.returnBOs = []
+      self.names = []
 
       # Populate the list and finish the view
       self.populateList()
@@ -66,8 +69,9 @@ class ExpandChildrenController:
          for rel in relationships:
             if efrel.getTypeName(rel) == MDXUtils.REL_AD: continue # Skip Drawings
             toBo = efrel.getTo(rel)
-            if toBo in self.childrenData.values(): continue # Skip repeats
             name, type = efbo.getName(toBo), efbo.getTypeName(toBo)
+            if name in self.names: continue # Skip repeats
+            self.names.append(name)
             index = self.childrenList.InsertStringItem(sys.maxint, name)
             self.childrenData[index] = toBo
             self.childrenList.SetStringItem(index, 1, type)
