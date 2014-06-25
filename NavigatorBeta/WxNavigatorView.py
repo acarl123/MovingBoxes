@@ -36,8 +36,8 @@ class NavigatorFrame ( wx.Frame ):
       self.m_panel2 = wx.Panel( self.m_splitter1, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.TAB_TRAVERSAL )
       bSizer2 = wx.BoxSizer( wx.VERTICAL )
 
-      self.m_listCtrl1 = wx.ListCtrl(self.m_panel2, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LC_REPORT )
-      bSizer2.Add( self.m_listCtrl1, 1, wx.ALL|wx.EXPAND, 5 )
+      self.lstLegendColors = wx.ListCtrl(self.m_panel2, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LC_REPORT )
+      bSizer2.Add( self.lstLegendColors, 1, wx.ALL|wx.EXPAND, 5 )
 
       self.m_panel2.SetSizer( bSizer2 )
       self.m_panel2.Layout()

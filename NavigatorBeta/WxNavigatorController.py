@@ -12,6 +12,7 @@ import AddNodeDlg
 import AttributeDlg
 import BackgroundFunctionDlg
 import cPickle as pickle
+import shelve
 import WxNavigatorExpandChildrenController
 import WxNavigatorExpandParentsController
 import ExportFileBusinessObject as efbo
@@ -20,15 +21,11 @@ import ExportFileUtils
 import MDXUtils
 import WxNavigatorModel
 import numpy
-import TypeColors
+from TypeColors import Colors
 import random
 import wx
 FloatCanvas.FloatCanvas.HitTest = WxNavigatorModel.BB_HitTest
 
-
-def reloadSelf(path):
-   frame = NavigatorController(path)
-   frame.show()
 
 class NavigatorController:
    def __init__(self, dbPath=None):
@@ -67,6 +64,8 @@ class NavigatorController:
       self.mainWindow.Bind(wx.EVT_MENU, self.onLoad, self.mainWindow.menuLoad)
       self.mainWindow.Bind(wx.EVT_MOUSEWHEEL, self.onScroll)
       self.mainWindow.Bind(wx.EVT_MENU, self.onShowLegend, self.mainWindow.showLegendMenuItem)
+      self.mainWindow.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onListItemDClick, self.mainWindow.lstLegendColors)
+      self.mainWindow.lstLegendColors.Bind(wx.EVT_MOUSE_EVENTS, self.onListMouse)
 
       # Initialize member variables
       self.allArrows = []
@@ -97,6 +96,10 @@ class NavigatorController:
    #--------------------------------------------------------------------------------------#
    # Initialization (not bindings) TODO: Need a better name for this
    #--------------------------------------------------------------------------------------#
+
+   def __del__(self): # have to do this to avoid a persistence error
+      Colors.ObjColorDict.close()
+
    def enable(self):
       # Bind events to FloatCanvas
       self.canvas.Bind(FloatCanvas.EVT_LEFT_DOWN, self.onClick)
@@ -110,9 +113,9 @@ class NavigatorController:
       self.canvas.Unbind(FloatCanvas.EVT_LEFT_UP)
 
    def makeLegend(self):
-      listCtrl = self.mainWindow.m_listCtrl1
+      listCtrl = self.mainWindow.lstLegendColors
       listCtrl.InsertColumn(0, 'Type', width=self.mainWindow.GetSize()[1]) # TODO: use list autowidth mixin
-      for type, color in TypeColors.ObjColorDict.iteritems():
+      for type, color in Colors.ObjColorDict.iteritems():
          index = listCtrl.InsertStringItem(sys.maxint, type)
          listCtrl.SetStringItem(index, 1, ' ')
          item = listCtrl.GetItem(index)
@@ -248,6 +251,44 @@ class NavigatorController:
    #--------------------------------------------------------------------------------------#
    # Normal Window Bindings
    #--------------------------------------------------------------------------------------#
+
+   def onListMouse(self, event):
+      if event.Entering(): self.mainWindow.lstLegendColors.SetFocus()
+      elif event.Leaving(): self.mainWindow.NavCanvas.SetFocus()
+      event.Skip()
+
+   def onListItemDClick(self, event):  # Allows user to edit colors
+      listCtrl = self.mainWindow.lstLegendColors
+      selectedItem = listCtrl.GetItem(listCtrl.GetNextSelected(-1))
+      colourDlg = wx.ColourDialog(self.mainWindow)
+
+      if colourDlg.ShowModal() == wx.ID_OK:
+         newColour = colourDlg.GetColourData().GetColour()
+
+         # changes the color stored in TypeColors and saves it to disk for persistence
+         Colors.ObjColorDict[str(selectedItem.GetText())] = newColour
+         colorSave = shelve.open('colors.inf')
+         colorSave.update(Colors.ObjColorDict)
+         colorSave.close()
+
+         selectedItem.SetBackgroundColour(newColour)
+         listCtrl.SetItem(selectedItem)
+
+         for rect in self.rects:
+            if isinstance(rect, (int, long)): bo = rect
+            else: bo = rect.name
+
+            boType = efbo.getTypeName(bo)
+            print boType, selectedItem.GetText()
+            if boType == selectedItem.GetText():
+               self.rects[rect].rect.SetFillColor(newColour)
+               if self.rects[rect]._revShown:
+                  for rect in self.rects[rect]._revisionRects.itervalues():
+                     rect.SetFillColor(newColour)
+
+         self.draw()
+         self.mainWindow.lstLegendColors.Refresh()
+
    # TODO: Need to eventually redo Matt Fuller's code but this addNodeDlg works for now
    def onAddObject(self, event):
       addNodeDlg = AddNodeDlg.AddNodeDlg(self.canvas, self.efs)
@@ -258,8 +299,8 @@ class NavigatorController:
                if bo in self.rects: continue # Check if this bo is already on the canvas
                xy = (random.randint(0, self.mainWindow.GetSize()[0]), random.randint(0, self.mainWindow.GetSize()[1])) #TODO: Come up with a good way to populate the screen
                self.boType = efbo.getTypeName(bo)
-               if self.boType in TypeColors.ObjColorDict:
-                  colorSet = TypeColors.ObjColorDict[self.boType]
+               if self.boType in Colors.ObjColorDict:
+                  colorSet = Colors.ObjColorDict[self.boType]
                   rect = NavRect(bo, self.mainWindow.NavCanvas, '%s' % efbo.getName(bo), xy, 0, colorSet, 'WHITE')
                else:
                   rect = NavRect(bo, self.mainWindow.NavCanvas, '%s' % efbo.getName(bo), xy, 0, 'WHITE', 'WHITE')
@@ -452,8 +493,8 @@ class NavigatorController:
          if key in self.selectedRects: color = 'WHITE'
          else: color = 'BLACK'
 
-         if self.boType in TypeColors.ObjColorDict:
-            colorSet = TypeColors.ObjColorDict[self.boType]
+         if self.boType in Colors.ObjColorDict:
+            colorSet = Colors.ObjColorDict[self.boType]
             rect = NavRect(key, self.mainWindow.NavCanvas, '%s' % efbo.getName(key), xy, 0, colorSet, color)
          else:
             rect = NavRect(key, self.mainWindow.NavCanvas, '%s' % efbo.getName(key), xy, 0, 'WHITE', color)
@@ -477,8 +518,8 @@ class NavigatorController:
                   text = self.canvas.AddScaledText('%s' % efbo.getRevision(revision), xy,
                                                    Size=12, Family=wx.ROMAN, Weight=wx.BOLD)
                   wh = text.BoundingBox.Width, text.BoundingBox.Height
-                  if self.boType in TypeColors.ObjColorDict:
-                     colorSet = TypeColors.ObjColorDict[self.boType]
+                  if self.boType in Colors.ObjColorDict:
+                     colorSet = Colors.ObjColorDict[self.boType]
                      # TODO: eventually revs need to be selectable
                      rect = self.canvas.AddRectangle((xy[0], xy[1] - wh[1]), wh, LineWidth=0, FillColor=colorSet,
                                                      LineColor=color)
@@ -610,8 +651,8 @@ class NavigatorController:
             text = self.canvas.AddScaledText('%s' % efbo.getRevision(revision), xy,
                                              Size=12, Family=wx.ROMAN, Weight=wx.BOLD)
             wh = text.BoundingBox.Width, text.BoundingBox.Height
-            if self.boType in TypeColors.ObjColorDict:
-               colorSet = TypeColors.ObjColorDict[self.boType]
+            if self.boType in Colors.ObjColorDict:
+               colorSet = Colors.ObjColorDict[self.boType]
                #TODO: eventually revs need to be selectable
                rect = self.canvas.AddRectangle((xy[0], xy[1]-wh[1]), wh, LineWidth=0, FillColor=colorSet, LineColor='WHITE')
             else:
@@ -638,7 +679,7 @@ class NavigatorController:
             for toBo in expandDlg.returnBOs:
                if not toBo in self.rects:
                   self.boType = efbo.getTypeName(toBo)
-                  if self.boType in TypeColors.ObjColorDict: colorSet = TypeColors.ObjColorDict[self.boType]
+                  if self.boType in Colors.ObjColorDict: colorSet = Colors.ObjColorDict[self.boType]
                   else: colorSet = 'WHITE'
                   rect = NavRect(toBo, self.mainWindow.NavCanvas, '%s' % efbo.getName(toBo), xy, 0, colorSet, 'WHITE')
                   rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event))
@@ -660,7 +701,7 @@ class NavigatorController:
             for fromBo in expandDlg.returnBOs:
                if not fromBo in self.rects:
                   self.boType = efbo.getTypeName(fromBo)
-                  if self.boType in TypeColors.ObjColorDict: colorSet = TypeColors.ObjColorDict[self.boType]
+                  if self.boType in Colors.ObjColorDict: colorSet = TypeColors.ObjColorDict[self.boType]
                   else: colorSet = 'WHITE'
                   rect = NavRect(fromBo, self.mainWindow.NavCanvas, '%s' % efbo.getName(fromBo), xy, 0, colorSet, 'WHITE')
                   rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event))
