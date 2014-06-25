@@ -701,7 +701,7 @@ class NavigatorController:
             for fromBo in expandDlg.returnBOs:
                if not fromBo in self.rects:
                   self.boType = efbo.getTypeName(fromBo)
-                  if self.boType in Colors.ObjColorDict: colorSet = TypeColors.ObjColorDict[self.boType]
+                  if self.boType in Colors.ObjColorDict: colorSet = Colors.ObjColorDict[self.boType]
                   else: colorSet = 'WHITE'
                   rect = NavRect(fromBo, self.mainWindow.NavCanvas, '%s' % efbo.getName(fromBo), xy, 0, colorSet, 'WHITE')
                   rect.rect.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, lambda object, event=wx.MouseEvent(): self.onRectLeftClick(object, event))
