@@ -18,7 +18,7 @@ from wx.lib.mixins.listctrl import CheckListCtrlMixin
 class ExpandView ( wx.Dialog ):
 
    def __init__( self, parent ):
-      wx.Dialog.__init__ ( self, parent, id = wx.ID_ANY, title = wx.EmptyString, pos = wx.DefaultPosition, size = wx.Size( 408,485 ), style = wx.DEFAULT_DIALOG_STYLE|wx.MAXIMIZE_BOX|wx.MINIMIZE_BOX )
+      wx.Dialog.__init__ ( self, parent, id = wx.ID_ANY, title = wx.EmptyString, pos = wx.DefaultPosition, size = wx.Size( 550,485 ), style = wx.DEFAULT_DIALOG_STYLE|wx.MAXIMIZE_BOX|wx.MINIMIZE_BOX )
 
       self.SetSizeHintsSz( wx.DefaultSize, wx.DefaultSize )
 
